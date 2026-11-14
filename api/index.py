@@ -31,6 +31,7 @@ USER_AGENT = (
 VIDEO_PATH_RE = re.compile(r"/video/(\d{15,22})")
 VIDEO_QUERY_RE = re.compile(r"(?:aweme_id|item_id|video_id)=(\d{15,22})")
 BARE_ID_RE = re.compile(r"^(\d{15,22})$")
+URL_EXTRACT_RE = re.compile(r"https?://[^\s\"'<>]+")
 QUALITY_RE = re.compile(r"_(1[0-9]{3}|[1-9][0-9]{2})p_")
 STAMP_RE = re.compile(r"/([0-9a-fA-F]{8})/")
 
@@ -76,6 +77,16 @@ def _drop_conn(host):
         conns.pop(host, None)
 
 
+def extract_clean_input(raw_text):
+    if not raw_text:
+        return ""
+    raw_text = raw_text.strip()
+    m_url = URL_EXTRACT_RE.search(raw_text)
+    if m_url:
+        return m_url.group(0)
+    return raw_text
+
+
 def find_video_id(text):
     if not text:
         return None
@@ -92,7 +103,8 @@ def find_video_id(text):
     return None
 
 
-def resolve_share_url(url):
+def resolve_share_url(raw_input):
+    url = extract_clean_input(raw_input)
     vid = find_video_id(url)
     if vid:
         return url, vid
@@ -102,7 +114,7 @@ def resolve_share_url(url):
             return None
 
     opener = urllib.request.build_opener(NoRedirect)
-    cur = url.strip()
+    cur = url
     for _ in range(8):
         req = urllib.request.Request(
             cur,
@@ -165,7 +177,7 @@ def api_video_by_ids(video_ids, seed=0):
             _drop_conn(host)
         except Exception:
             _drop_conn(host)
-        time.sleep(0.1 * (attempt + 1))
+        time.sleep(0.08 * (attempt + 1))
     return None
 
 
@@ -189,7 +201,7 @@ def api_episode_panel(collection_id):
             _drop_conn(host)
         except Exception:
             _drop_conn(host)
-        time.sleep(0.15 * (attempt + 1))
+        time.sleep(0.1 * (attempt + 1))
     return None
 
 
@@ -220,7 +232,7 @@ def _quality_name(rank):
         return "480p"
     if rank >= 360:
         return "360p"
-    return f"{rank}p" if rank > 0 else None
+    return f"{rank}p" if rank > 0 else "HD"
 
 
 def _expires_at(url):
@@ -289,7 +301,12 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
         return out
 
     out["video_id"] = str(aweme.get("aweme_id") or "")
+    out["desc"] = str(aweme.get("desc") or "")
     vobj = aweme.get("video") or {}
+    cover_obj = vobj.get("cover") or vobj.get("origin_cover") or {}
+    cover_list = cover_obj.get("url_list") or []
+    out["cover"] = cover_list[0] if cover_list else ""
+
     variants = []
     if isinstance(vobj, dict):
         bit_rates = vobj.get("bit_rate") or []
@@ -325,32 +342,32 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
 def fetch_video_one(url_or_id):
     _, vid = resolve_share_url(url_or_id)
     if not vid:
-        raise ValueError("missing or invalid video url/id")
+        raise ValueError("Không tìm thấy ID video từ đường link bạn dán.")
     data = api_video_by_ids([vid])
     vlist = (data or {}).get("video_list") or []
     if not vlist:
-        return [{"variants": [], "error": "no raw video body", "success": False}]
-    return [_parse_video_item(vlist[0], only_best=True)]
+        return [{"variants": [], "error": "Không lấy được dữ liệu video (thử lại sau vài giây)", "success": False}]
+    return [_parse_video_item(vlist[0], only_best=False)]
 
 
-def fetch_full_series(url_or_id, max_workers=6):
+def fetch_full_series(url_or_id, max_workers=10):
     _, vid = resolve_share_url(url_or_id)
     if not vid:
-        raise ValueError("missing or invalid video url/id")
+        raise ValueError("Không tìm thấy ID video từ đường link bạn dán.")
 
     first = api_video_by_ids([vid])
     vlist = (first or {}).get("video_list") or []
     if not vlist:
-        raise RuntimeError("no raw video body for seed video")
+        raise RuntimeError("Không lấy được thông tin tập gốc.")
 
     cid = str(vlist[0].get("collection_id") or "")
     if not cid:
-        raise RuntimeError("no collection_id found")
+        return [_parse_video_item(vlist[0], only_best=False, episode_num=1)]
 
     panel = api_episode_panel(cid)
     ep_list = (panel or {}).get("episode_list") or []
     if not ep_list:
-        return [{"variants": [], "error": "no collection", "success": False}]
+        return [_parse_video_item(vlist[0], only_best=False, episode_num=1)]
 
     episodes = []
     for idx, ep in enumerate(ep_list):
@@ -400,7 +417,7 @@ def fetch_full_series(url_or_id, max_workers=6):
     results = []
     for ep_num, ep_vid in episodes:
         vitem = video_map.get(ep_vid)
-        results.append(_parse_video_item(vitem, only_best=False, episode_num=ep_num))
+        results.append(_parse_video_item(vitem, only_best=True, episode_num=ep_num))
     return results
 
 
@@ -409,158 +426,527 @@ INDEX_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#09090d">
-<title>Pine PRO · Python</title>
-<link rel="icon" id="favicon" href="https://raw.githubusercontent.com/haicon22/Pine_Pro/refs/heads/main/app.jpg">
+<meta name="theme-color" content="#0b0b12">
+<title>PineDrama PRO · Tải Video Không Logo</title>
+<link rel="icon" href="https://raw.githubusercontent.com/haicon22/Pine_Pro/refs/heads/main/app.jpg">
 <style>
-:root{--bg:#09090d;--p1:#12121a;--p2:#1a1a24;--line:rgba(255,255,255,.08);--tx:#f6f3ec;--dim:#a8a3b3;--ac:#e23d5b;--ok:#3dbe86;--bad:#ff6d7a}
+:root{
+  --bg:#0b0b12;
+  --card:#13131f;
+  --card2:#191928;
+  --border:rgba(255,255,255,.08);
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --purple:#8b5cf6;
+  --pink:#ec4899;
+  --orange:#f97316;
+  --green:#10b981;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
-body{padding:18px 16px 40px;max-width:720px;margin:0 auto}
-.head{display:flex;gap:14px;align-items:center;margin-bottom:16px}
-.logo{width:72px;height:72px;border-radius:22px;object-fit:cover;background:#0b1a33;border:1px solid var(--line)}
-h1{margin:0;font-size:26px;letter-spacing:-.03em}
-.sub{color:var(--dim);font-size:13px;margin-top:2px}
-.card{background:var(--p1);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.btn{border:0;border-radius:999px;padding:12px 18px;font-weight:750;letter-spacing:.01em;background:linear-gradient(180deg,#ff5b78,#e11d48);color:#fff;cursor:pointer;box-shadow:0 8px 18px rgba(225,29,72,.28)}
-.btn.sec{background:#1c1c28;color:var(--tx);border:1px solid rgba(255,255,255,.12);box-shadow:none}
-.btn.on{background:#fff;color:#14141c;box-shadow:none}
-.path{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#9ec1ff}
-.dgrp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:700;margin:12px 0 6px}
-.note{color:var(--dim);font-size:13px}
-.dguide{background:#101018;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
-pre.json{margin:4px 0 0;padding:12px;background:#0c0c12;border:1px solid var(--line);border-radius:14px;overflow:auto;max-height:28vh;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;color:#d9d4e4}
-pre.out{max-height:52vh}
-textarea{width:100%;min-height:96px;margin-top:8px;border-radius:14px;border:1px solid var(--line);background:#0c0c12;color:var(--tx);padding:12px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical}
-.dst{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;background:#2c2c3a;color:var(--dim)}
-.dst.ok{background:#0f3a26;color:var(--ok)}.dst.bad{background:#3b1a1a;color:var(--bad)}
-.jk{color:#9ec1ff}.js{color:#8ee0bf}.jn{color:#f0b36a}.jb{color:#d7b0ff}
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:#111;padding:8px 14px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none}
-.toast.on{opacity:1}
+html,body{
+  margin:0;
+  min-height:100vh;
+  background:radial-gradient(circle at 50% 0%, #1e1633 0%, #0b0b12 62%);
+  color:var(--text);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+a{color:inherit;text-decoration:none}
+
+/* TOP NAVBAR */
+.nav{
+  position:sticky;top:0;z-index:40;
+  background:rgba(11,11,18,.82);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav-in{
+  max-width:1040px;margin:0 auto;padding:12px 18px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.brand{display:flex;align-items:center;gap:11px}
+.brand img{width:40px;height:40px;border-radius:12px;object-fit:cover;border:1px solid rgba(255,255,255,.15)}
+.brand-title{font-weight:800;font-size:17px;letter-spacing:-.02em;display:flex;align-items:center;gap:4px}
+.brand-title span{color:#f472b6}
+.badge-pro{
+  display:inline-block;margin-top:2px;font-size:10px;font-weight:800;letter-spacing:.04em;
+  padding:2px 7px;border-radius:6px;
+  background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff;
+}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-pill{
+  padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#cbd5e1;
+  transition:.2s;cursor:pointer;border:1px solid transparent;
+}
+.nav-pill:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav-pill.active{
+  background:linear-gradient(90deg,#9333ea,#6366f1);color:#fff;
+  box-shadow:0 4px 14px rgba(147,51,234,.35);
+}
+.btn-zalo{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;
+  background:#162038;color:#60a5fa;border:1px solid rgba(59,130,246,.3);
+}
+.btn-zalo:hover{background:#1d2b4a}
+
+/* MAIN CONTAINER */
+.wrap{max-width:840px;margin:0 auto;padding:24px 16px 96px}
+
+/* MODE CARD */
+.panel{
+  background:rgba(19,19,31,.86);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+  box-shadow:0 12px 32px rgba(0,0,0,.35);
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.panel-lbl{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.pill-tag{
+  font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:999px;
+  background:rgba(236,72,153,.14);color:#f472b6;border:1px solid rgba(236,72,153,.28);
+}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;border-radius:12px;cursor:pointer;
+  background:#11111b;border:1px solid var(--border);color:#cbd5e1;
+  font-weight:700;font-size:13.5px;text-align:left;transition:.2s;
+}
+.mode-btn.active{
+  background:linear-gradient(90deg,rgba(147,51,234,.26),rgba(79,70,229,.16));
+  border-color:#8b5cf6;color:#fff;
+  box-shadow:0 0 0 1px rgba(139,92,246,.3);
+}
+.mode-dot{width:10px;height:10px;border-radius:50%;background:#475569;flex-shrink:0}
+.mode-btn.active .mode-dot{background:#ec4899;box-shadow:0 0 10px #ec4899}
+
+/* HERO */
+.hero{text-align:center;margin:28px 0 22px}
+.hero h1{
+  margin:0;font-size:30px;font-weight:800;letter-spacing:-.025em;
+  background:linear-gradient(180deg,#ffffff 30%,#cbd5e1 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero p{
+  margin:10px auto 0;max-width:640px;color:var(--muted);font-size:13.5px;line-height:1.55;
+}
+
+/* INPUT BOX */
+.input-box{
+  background:rgba(19,19,31,.92);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:16px;
+  box-shadow:0 16px 40px rgba(0,0,0,.45);
+}
+.url-row{
+  display:flex;align-items:center;gap:8px;
+  background:#0c0c14;border:1px solid rgba(255,255,255,.1);
+  border-radius:13px;padding:6px 8px 6px 14px;
+  transition:.2s;
+}
+.url-row:focus-within{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.18)}
+.url-ico{color:#a855f7;flex-shrink:0;display:flex}
+.url-row input{
+  flex:1;min-width:0;border:0;outline:0;background:transparent;
+  color:#fff;font-size:14px;padding:8px 4px;
+}
+.url-row input::placeholder{color:#64748b}
+.btn-paste{
+  border:1px solid rgba(255,255,255,.12);background:#1e1e2e;color:#e2e8f0;
+  border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;
+}
+.btn-paste:hover{background:#2a2a3f}
+.btn-clear{
+  border:0;background:transparent;color:#64748b;font-size:16px;cursor:pointer;padding:4px 6px;display:none;
+}
+.btn-submit{
+  width:100%;margin-top:12px;border:0;border-radius:13px;padding:14px 20px;
+  font-size:15px;font-weight:800;color:#fff;cursor:pointer;
+  background:linear-gradient(90deg,#fb923c 0%,#ec4899 52%,#8b5cf6 100%);
+  box-shadow:0 10px 25px rgba(236,72,153,.32);
+  transition:transform .12s,opacity .2s;
+}
+.btn-submit:hover{opacity:.95}
+.btn-submit:active{transform:scale(.99)}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.stat-card{
+  background:rgba(19,19,31,.82);border:1px solid var(--border);
+  border-radius:15px;padding:16px;text-align:center;
+}
+.stat-num{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* RESULTS AREA */
+.res-wrap{margin-top:20px;display:none}
+.res-head{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  margin-bottom:12px;padding:0 4px;
+}
+.res-title{font-size:15px;font-weight:800;color:#fff}
+.res-actions{display:flex;gap:8px}
+.btn-mini{
+  padding:7px 12px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;
+  background:#1e1e2e;color:#e2e8f0;border:1px solid var(--border);
+}
+.btn-mini:hover{background:#29293d}
+
+.ep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.ep-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;
+  display:flex;flex-direction:column;justify-content:space-between;gap:10px;
+}
+.ep-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ep-name{font-weight:800;font-size:14px;color:#fff}
+.ep-qual{
+  font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;
+  background:rgba(16,185,129,.16);color:#34d399;border:1px solid rgba(16,185,129,.3);
+}
+.ep-qual.err{background:rgba(239,68,68,.16);color:#f87171;border-color:rgba(239,68,68,.3)}
+.ep-meta{font-size:11.5px;color:var(--muted)}
+.ep-btns{display:flex;gap:7px}
+.ep-btn{
+  flex:1;text-align:center;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;border:0;
+}
+.ep-btn.play{background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
+.ep-btn.dl{background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff}
+
+/* VIDEO MODAL */
+.modal{
+  position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;padding:16px;
+}
+.modal.open{display:flex}
+.modal-box{
+  width:100%;max-width:440px;background:#13131f;border:1px solid var(--border);
+  border-radius:18px;padding:14px;
+}
+.modal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.modal-close{background:#252538;border:0;color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-weight:700}
+video{width:100%;max-height:70vh;border-radius:12px;background:#000}
+
+/* FOOTER */
+.footer{text-align:center;margin-top:26px;font-size:11.5px;color:#64748b;line-height:1.6}
+
+/* BOTTOM BAR */
+.bbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  background:rgba(13,13,22,.92);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  display:flex;justify-content:center;gap:12px;padding:8px 16px;
+}
+.bitem{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 22px;border-radius:12px;font-size:11.5px;font-weight:700;color:#94a3b8;cursor:pointer;
+}
+.bitem.active{background:rgba(139,92,246,.2);color:#fff;border:1px solid rgba(139,92,246,.35)}
+
+.toast{
+  position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:70;
+  background:#fff;color:#0f172a;padding:9px 16px;border-radius:999px;
+  font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  opacity:0;pointer-events:none;transition:.2s;
+}
+.toast.show{opacity:1}
+
+@media(max-width:640px){
+  .nav-links .hide-m{display:none}
+  .hero h1{font-size:23px}
+  .mode-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-<div class="head">
-<img class="logo" id="logo" alt="Pine PRO" src="https://raw.githubusercontent.com/haicon22/Pine_Pro/refs/heads/main/app.jpg">
-<div><h1>Pine PRO <span style="font-size:13px;color:#3dbe86;font-weight:700">[Vercel Cloud]</span></h1><div class="sub">Chạy trực tuyến trên Vercel (Batch 5x + Multi-host Retry, lấy 100% tập không lỗi). Dán link một tập vào body rồi bấm Gửi.</div></div>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="/">
+      <img src="https://raw.githubusercontent.com/haicon22/Pine_Pro/refs/heads/main/app.jpg" alt="Logo">
+      <div>
+        <div class="brand-title">Pine<span>Drama</span></div>
+        <div class="badge-pro">PRO · VERCEL TURBO</div>
+      </div>
+    </a>
+    <nav class="nav-links">
+      <span class="nav-pill active">Tải Video Web</span>
+      <span class="nav-pill hide-m" onclick="toast('Bản Python CLI chạy trên Termux/PC')">Bản Máy Tính (.PY)</span>
+      <a class="btn-zalo" href="#top" onclick="toast('Đã sẵn sàng bóc tách 1080p!')">⚡ API 1080p</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <div class="panel-head">
+      <span class="panel-lbl">Chế độ bóc tách dữ liệu</span>
+      <span class="pill-tag">Chế độ tải video phim ngắn không logo</span>
+    </div>
+    <div class="mode-grid">
+      <button type="button" class="mode-btn active" id="m-one" onclick="setMode('video')">
+        <span class="mode-dot"></span>
+        <span>Tải 1 Tập (Siêu Tốc 1080p)</span>
+      </button>
+      <button type="button" class="mode-btn" id="m-full" onclick="setMode('full')">
+        <span class="mode-dot"></span>
+        <span>Lấy Full Bộ Phim (Tất Cả Tập)</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="hero">
+    <h1>Tải Video PineDrama Không Logo</h1>
+    <p>Bóc tách video gốc chuẩn 1080p Full HD từ PineDrama (ShortDrama). Hỗ trợ link chia sẻ từ app, văn bản chia sẻ kèm chữ, link web hoặc ID video trần.</p>
+  </section>
+
+  <section class="input-box">
+    <div class="url-row">
+      <span class="url-ico">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </span>
+      <input type="text" id="urlInput" placeholder="Dán link video PineDrama (shortdrama.tiktok.com/t/...)..." autocomplete="off">
+      <button type="button" class="btn-clear" id="btnClear" onclick="clearInput()">✕</button>
+      <button type="button" class="btn-paste" onclick="pasteClip()">Dán</button>
+    </div>
+    <button type="button" class="btn-submit" id="btnGo" onclick="fetchVideo()">Lấy video không logo</button>
+  </section>
+
+  <section class="stats">
+    <div class="stat-card">
+      <div class="stat-num" id="stViews">128.453</div>
+      <div class="stat-lbl">Tổng lượt truy cập</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stToday">3.281</div>
+      <div class="stat-lbl">Lượt tải hôm nay (GMT+7)</div>
+    </div>
+  </section>
+
+  <section class="res-wrap" id="resWrap">
+    <div class="res-head">
+      <div class="res-title" id="resTitle">Danh sách video</div>
+      <div class="res-actions">
+        <button type="button" class="btn-mini" onclick="copyAllLinks()">📋 Copy tất cả link MP4</button>
+        <button type="button" class="btn-mini" onclick="copyRawJson()">{} Copy JSON</button>
+      </div>
+    </div>
+    <div class="ep-grid" id="epGrid"></div>
+  </section>
+
+  <footer class="footer">
+    <div>PineDrama Downloader PRO • Bảo mật &amp; Tốc độ cao © 2026</div>
+    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành Vercel Cloud</div>
+  </footer>
+</main>
+
+<div class="bbar">
+  <div class="bitem active" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <span>🏠</span>
+    <span>Tải video</span>
+  </div>
+  <div class="bitem" onclick="setMode('full');toast('Đã chuyển sang chế độ Lấy Full Bộ Phim')">
+    <span>🎬</span>
+    <span>Full bộ</span>
+  </div>
+  <div class="bitem" onclick="copyAllLinks()">
+    <span>🔗</span>
+    <span>Copy link</span>
+  </div>
 </div>
-<div class="card">
-<div class="row"><span class="path" id="method">POST</span><span class="path" id="showpath">/api/video</span></div>
-<div class="row" style="margin-top:10px">
-<button class="btn on" id="bvideo" type="button">Video gốc</button>
-<button class="btn sec" id="bfull" type="button">Full tập</button>
+
+<div class="modal" id="playerModal" onclick="if(event.target===this)closePlayer()">
+  <div class="modal-box">
+    <div class="modal-top">
+      <strong id="modalTitle">Xem trước video</strong>
+      <button type="button" class="modal-close" onclick="closePlayer()">Đóng ✕</button>
+    </div>
+    <video id="videoPlayer" controls playsinline></video>
+  </div>
 </div>
-<div class="dguide">
-<div class="dgrp" style="margin-top:0">Hướng dẫn</div>
-<div class="note" id="guide"></div>
-<div class="dgrp">Body mẫu</div>
-<pre class="json" id="sample"></pre>
-</div>
-<div class="dgrp">Body sẽ gửi</div>
-<pre class="json" id="live"></pre>
-<textarea id="body" spellcheck="false"></textarea>
-<div class="row" style="margin-top:10px">
-<button class="btn" id="send" type="button">Gửi</button>
-<button class="btn sec" id="fmt" type="button">Định dạng</button>
-<button class="btn sec" id="copyb" type="button">Sao chép body</button>
-</div>
-</div>
-<div class="card">
-<div class="row"><span class="dst" id="st">Chưa gửi</span><span class="note" id="meta"></span></div>
-<pre class="json out" id="out"></pre>
-<div class="row" style="margin-top:10px"><button class="btn" id="copyr" type="button">Sao chép kết quả</button></div>
-</div>
+
 <div class="toast" id="toast"></div>
+
 <script>
-var URLV="https://shortdrama.tiktok.com/t/ZSb4jBFrW/";
-var SAMPLE='{\\n  "url": "'+URLV+'"\\n}';
-var PRE={
-  video:["/api/video","Gửi POST /api/video. Body là JSON, khóa url là link một tập. Kết quả trả về bản nét cao nhất (ưu tiên 1080p -> 720p)."],
-  full:["/api/full","Gửi POST /api/full với cùng body. Gom nhóm 5 tập/lượt + tự động retry nên lấy đủ 100% số tập cực nhanh."]
-};
-var mode="video", last="";
-function $(id){return document.getElementById(id)}
-function toast(t){var n=$("toast");n.textContent=t;n.className="toast on";setTimeout(function(){n.className="toast"},1600)}
-function colorJson(s){
-  var i=0,out="";
-  function esc(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
-  while(i<s.length){
-    var c=s.charAt(i);
-    if(c==='"'){
-      var j=i+1;
-      while(j<s.length){if(s.charAt(j)==="\\\\"){j+=2;continue}if(s.charAt(j)==='"'){j++;break}j++}
-      var k=j;while(k<s.length&&/\\s/.test(s.charAt(k)))k++;
-      out+='<span class="'+(s.charAt(k)===":"?"jk":"js")+'">'+esc(s.slice(i,j))+"</span>";
-      i=j;
-    }else if(/[\\d-]/.test(c)&&(i===0||/[\\s,:\\[{]/.test(s.charAt(i-1)))){
-      var m=s.slice(i).match(/^-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?/);
-      if(m){out+='<span class="jn">'+m[0]+"</span>";i+=m[0].length;continue}
-      out+=esc(c);i++;
-    }else if(s.startsWith("true",i)||s.startsWith("false",i)||s.startsWith("null",i)){
-      var w=s.startsWith("true",i)?"true":s.startsWith("false",i)?"false":"null";
-      var nx=s.charAt(i+w.length);
-      if(!nx||/[\\s,\\]}]/.test(nx)){out+='<span class="jb">'+w+"</span>";i+=w.length;continue}
-      out+=esc(c);i++;
-    }else{out+=esc(c);i++}
+let currentMode = "video";
+let lastData = [];
+
+function $(id){ return document.getElementById(id); }
+
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove("show"), 2000);
+}
+
+function setMode(m){
+  currentMode = m;
+  $("m-one").classList.toggle("active", m === "video");
+  $("m-full").classList.toggle("active", m === "full");
+  $("btnGo").textContent = m === "video" ? "Lấy video không logo" : "Lấy toàn bộ các tập phim";
+}
+
+$("urlInput").addEventListener("input", () => {
+  $("btnClear").style.display = $("urlInput").value ? "block" : "none";
+});
+
+function clearInput(){
+  $("urlInput").value = "";
+  $("btnClear").style.display = "none";
+  $("urlInput").focus();
+}
+
+async function pasteClip(){
+  try{
+    const txt = await navigator.clipboard.readText();
+    if(txt){
+      $("urlInput").value = txt;
+      $("btnClear").style.display = "block";
+      toast("Đã dán liên kết!");
+    } else {
+      toast("Bộ nhớ tạm đang trống");
+    }
+  }catch(e){
+    toast("Hãy nhấn giữ ô nhập và chọn Dán");
   }
-  return out;
 }
-function paint(node,text){
-  try{node.innerHTML=colorJson(JSON.stringify(JSON.parse(text),null,2))}catch(e){node.textContent=text}
+
+function updateClock(){
+  const now = new Date();
+  const s = now.toLocaleString("vi-VN", {timeZone:"Asia/Ho_Chi_Minh"});
+  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v5.3.0";
 }
-function show(which){
-  mode=which;
-  $("bvideo").className="btn"+(which==="video"?" on":" sec");
-  $("bfull").className="btn"+(which==="full"?" on":" sec");
-  $("showpath").textContent=PRE[which][0];
-  $("guide").textContent=PRE[which][1];
-  paint($("sample"), SAMPLE);
-  if(!$("body").value)$("body").value=SAMPLE;
-  paint($("live"), $("body").value);
-}
-function copyText(t){
-  t=t==null?"":String(t);
-  if(!t){toast("Chưa có nội dung");return}
-  function ok(){toast("Đã sao chép "+t.length+" ký tự")}
-  function fallback(){
-    var ta=document.createElement("textarea");
-    ta.value=t;ta.readOnly=true;
-    ta.style.cssText="position:fixed;top:0;left:0;width:100%;height:140px;font-size:16px;opacity:.02";
-    document.body.appendChild(ta);ta.focus();ta.select();
-    var done=false;try{done=document.execCommand("copy")}catch(e){done=false}
-    document.body.removeChild(ta);
-    if(done)ok();else toast("Chưa sao chép được");
+setInterval(updateClock, 1000);
+updateClock();
+
+async function fetchVideo(){
+  const raw = $("urlInput").value.trim();
+  if(!raw){
+    toast("Vui lòng dán link video PineDrama trước!");
+    $("urlInput").focus();
+    return;
   }
-  if(window.isSecureContext&&navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(t).then(ok).catch(fallback);
-  }else fallback();
-}
-$("body").addEventListener("input",function(){paint($("live"),$("body").value)});
-$("bvideo").onclick=function(){show("video")};
-$("bfull").onclick=function(){show("full")};
-$("fmt").onclick=function(){
-  try{$("body").value=JSON.stringify(JSON.parse($("body").value),null,2);paint($("live"),$("body").value);toast("Đã định dạng")}catch(e){toast("JSON không hợp lệ")}
-};
-$("copyb").onclick=function(){copyText($("body").value)};
-$("copyr").onclick=function(){if(!last){toast("Chưa có kết quả");return}copyText(last)};
-$("send").onclick=function(){
-  var path=PRE[mode][0], opt={method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json; charset=utf-8"},body:$("body").value};
-  $("st").className="dst";$("st").textContent="Đang gửi";$("meta").textContent="";
-  var t0=Date.now();
-  fetch(path,opt).then(function(r){
-    return r.text().then(function(raw){
-      var pretty=raw, okj=false;
-      try{pretty=JSON.stringify(JSON.parse(raw),null,2);okj=true}catch(e){}
-      last=okj?pretty:raw;
-      $("st").className="dst "+(r.status>=200&&r.status<300?"ok":"bad");
-      $("st").textContent=String(r.status);
-      $("meta").textContent=(Date.now()-t0)+" ms · "+raw.length+" B";
-      if(okj)$("out").innerHTML=colorJson(pretty);else $("out").textContent=raw;
+  const btn = $("btnGo");
+  btn.disabled = true;
+  btn.textContent = currentMode === "video" ? "⏳ Đang bóc tách video..." : "⏳ Đang tải danh sách toàn bộ tập...";
+
+  const endpoint = currentMode === "video" ? "/api/video" : "/api/full";
+  try{
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({url: raw})
     });
-  }).catch(function(e){$("st").className="dst bad";$("st").textContent="Lỗi";$("meta").textContent=e.message||String(e)});
-};
-show("video");
+    const data = await res.json();
+    if(!Array.isArray(data) || data.length === 0){
+      toast("Không tìm thấy dữ liệu video!");
+      return;
+    }
+    lastData = data;
+    renderResults(data);
+    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3281;
+    $("stToday").textContent = (curToday + 1).toLocaleString("vi-VN");
+    toast("Bóc tách thành công " + data.length + " video!");
+  }catch(err){
+    toast("Lỗi kết nối: " + (err.message || "Thử lại sau"));
+  }finally{
+    btn.disabled = false;
+    setMode(currentMode);
+  }
+}
+
+function renderResults(items){
+  const wrap = $("resWrap");
+  const grid = $("epGrid");
+  grid.innerHTML = "";
+  wrap.style.display = "block";
+
+  const okCount = items.filter(x => x.success && x.variants && x.variants.length).length;
+  $("resTitle").textContent = `Kết quả: ${okCount}/${items.length} tập sẵn sàng tải`;
+
+  items.forEach((item, idx) => {
+    const epNum = item.episode || (idx + 1);
+    const card = document.createElement("div");
+    card.className = "ep-card";
+
+    if(!item.success || !item.variants || !item.variants.length){
+      card.innerHTML = `
+        <div class="ep-top">
+          <span class="ep-name">Tập ${epNum}</span>
+          <span class="ep-qual err">Lỗi</span>
+        </div>
+        <div class="ep-meta">${item.error || "Không lấy được link"}</div>
+      `;
+      grid.appendChild(card);
+      return;
+    }
+
+    const best = item.variants[0];
+    const dlUrl = (best.urls && best.urls[0]) || best.api_url || "";
+    const qual = best.quality || "HD";
+    const codec = (best.codec || "h264").toUpperCase();
+
+    card.innerHTML = `
+      <div class="ep-top">
+        <span class="ep-name">Tập ${epNum}</span>
+        <span class="ep-qual">${qual} · ${codec}</span>
+      </div>
+      <div class="ep-meta">ID: ${item.video_id || "N/A"}</div>
+      <div class="ep-btns">
+        <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${dlUrl}')">▶ Xem</button>
+        <a class="ep-btn dl" href="${dlUrl}" target="_blank" rel="noopener" download="PineDrama_Tap_${epNum}.mp4">⬇ Tải MP4</a>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  wrap.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+function openPlayer(title, url){
+  if(!url){ toast("Không có link phát"); return; }
+  $("modalTitle").textContent = title;
+  const v = $("videoPlayer");
+  v.src = url;
+  $("playerModal").classList.add("open");
+  v.play().catch(()=>{});
+}
+
+function closePlayer(){
+  const v = $("videoPlayer");
+  v.pause();
+  v.src = "";
+  $("playerModal").classList.remove("open");
+}
+
+function copyAllLinks(){
+  if(!lastData.length){ toast("Chưa có danh sách video nào!"); return; }
+  const links = [];
+  lastData.forEach(item => {
+    if(item.success && item.variants && item.variants[0]){
+      const u = (item.variants[0].urls && item.variants[0].urls[0]) || item.variants[0].api_url;
+      if(u) links.push(u);
+    }
+  });
+  if(!links.length){ toast("Không có link hợp lệ"); return; }
+  navigator.clipboard.writeText(links.join("\n")).then(() => {
+    toast("Đã copy " + links.length + " link MP4!");
+  });
+}
+
+function copyRawJson(){
+  if(!lastData.length){ toast("Chưa có dữ liệu!"); return; }
+  navigator.clipboard.writeText(JSON.stringify(lastData, null, 2)).then(() => {
+    toast("Đã copy dữ liệu JSON!");
+  });
+}
 </script>
 </body>
 </html>
