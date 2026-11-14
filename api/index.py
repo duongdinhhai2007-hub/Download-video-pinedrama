@@ -303,6 +303,10 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
     out["video_id"] = str(aweme.get("aweme_id") or "")
     out["desc"] = str(aweme.get("desc") or "")
     vobj = aweme.get("video") or {}
+    cover_obj = vobj.get("cover") or vobj.get("origin_cover") or {}
+    cover_list = cover_obj.get("url_list") or []
+    out["cover"] = cover_list[0] if cover_list else ""
+
     variants = []
     if isinstance(vobj, dict):
         bit_rates = vobj.get("bit_rate") or []
@@ -417,7 +421,7 @@ def fetch_full_series(url_or_id, max_workers=10):
     return results
 
 
-INDEX_HTML = """<!doctype html>
+INDEX_HTML = r"""<!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -720,9 +724,9 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
       </div>
     </a>
     <nav class="nav-links">
-      <span class="nav-pill active" id="tabWeb" onclick="switchTab('web')">Tải Video Web</span>
-      <span class="nav-pill hide-m" id="tabPc" onclick="switchTab('pc')">Bản Máy Tính</span>
-      <span class="nav-pill hide-m" onclick="openAdmin()">Liên hệ Admin</span>
+      <button type="button" class="nav-pill active" id="tabWeb" onclick="switchTab('web')">Tải Video Web</button>
+      <button type="button" class="nav-pill hide-m" id="tabPc" onclick="switchTab('pc')">Bản Máy Tính</button>
+      <button type="button" class="nav-pill hide-m" onclick="openAdmin()">Liên hệ Admin</button>
       <button type="button" class="btn-admin" onclick="openAdmin()">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <span>Admin: Dương Đình Hải</span>
@@ -824,18 +828,18 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 </main>
 
 <div class="bbar">
-  <div class="bitem active" id="bWeb" onclick="switchTab('web')">
+  <button type="button" class="bitem active" id="bWeb" onclick="switchTab('web')" style="background:none;border:0">
     <span>🏠</span>
     <span>Tải video</span>
-  </div>
-  <div class="bitem" id="bPc" onclick="switchTab('pc')">
+  </button>
+  <button type="button" class="bitem" id="bPc" onclick="switchTab('pc')" style="background:none;border:0">
     <span>💻</span>
     <span>Bản máy tính</span>
-  </div>
-  <div class="bitem" onclick="openAdmin()">
+  </button>
+  <button type="button" class="bitem" onclick="openAdmin()" style="background:none;border:0">
     <span>📞</span>
     <span>Liên hệ Admin</span>
-  </div>
+  </button>
 </div>
 
 <!-- VIDEO PLAYER MODAL -->
@@ -1060,7 +1064,7 @@ function copyAllLinks(){
     }
   });
   if(!links.length){ toast("Không có link hợp lệ"); return; }
-  navigator.clipboard.writeText(links.join("\n")).then(() => {
+  navigator.clipboard.writeText(links.join("\\n")).then(() => {
     toast("Đã copy " + links.length + " link MP4!");
   });
 }
