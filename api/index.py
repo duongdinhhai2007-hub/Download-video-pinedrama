@@ -303,10 +303,6 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
     out["video_id"] = str(aweme.get("aweme_id") or "")
     out["desc"] = str(aweme.get("desc") or "")
     vobj = aweme.get("video") or {}
-    cover_obj = vobj.get("cover") or vobj.get("origin_cover") or {}
-    cover_list = cover_obj.get("url_list") or []
-    out["cover"] = cover_list[0] if cover_list else ""
-
     variants = []
     if isinstance(vobj, dict):
         bit_rates = vobj.get("bit_rate") or []
@@ -427,26 +423,23 @@ INDEX_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0b12">
-<title>PineDrama PRO · Tải Video Không Logo</title>
-<link rel="icon" href="https://raw.githubusercontent.com/haicon22/Pine_Pro/refs/heads/main/app.jpg">
+<title>PineDrama PRO · Dương Đình Hải</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232e1065'/%3E%3Cstop offset='100%25' stop-color='%231e1b4b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z' fill='%2338bdf8'/%3E%3Cellipse cx='32' cy='36' rx='17' ry='15' fill='%23fb7185'/%3E%3Cpath d='M16 33c3-6 29-6 32 0 1 8-4 16-16 16S15 41 16 33z' fill='%23f43f5e'/%3E%3Crect x='21' y='34' width='17' height='11' rx='5.5' fill='%23ffe4e6'/%3E%3Crect x='25' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3Crect x='31' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#0b0b12;
   --card:#13131f;
-  --card2:#191928;
   --border:rgba(255,255,255,.08);
   --text:#f8fafc;
   --muted:#94a3b8;
   --purple:#8b5cf6;
   --pink:#ec4899;
-  --orange:#f97316;
-  --green:#10b981;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{
   margin:0;
   min-height:100vh;
-  background:radial-gradient(circle at 50% 0%, #1e1633 0%, #0b0b12 62%);
+  background:radial-gradient(circle at 50% 0%, #23173d 0%, #0b0b12 62%);
   color:var(--text);
   font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
 }
@@ -455,7 +448,7 @@ a{color:inherit;text-decoration:none}
 /* TOP NAVBAR */
 .nav{
   position:sticky;top:0;z-index:40;
-  background:rgba(11,11,18,.82);
+  background:rgba(11,11,18,.84);
   backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);
 }
@@ -464,12 +457,18 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
 .brand{display:flex;align-items:center;gap:11px}
-.brand img{width:40px;height:40px;border-radius:12px;object-fit:cover;border:1px solid rgba(255,255,255,.15)}
-.brand-title{font-weight:800;font-size:17px;letter-spacing:-.02em;display:flex;align-items:center;gap:4px}
-.brand-title span{color:#f472b6}
+.logo-box{
+  width:42px;height:42px;border-radius:13px;flex-shrink:0;
+  background:linear-gradient(135deg,#2e1065,#17153b);
+  border:1.5px solid rgba(236,72,153,.55);
+  box-shadow:0 0 16px rgba(236,72,153,.35);
+  display:flex;align-items:center;justify-content:center;
+}
+.brand-title{font-weight:800;font-size:18px;letter-spacing:-.02em;display:flex;align-items:center}
+.brand-title span{color:#e879f9}
 .badge-pro{
   display:inline-block;margin-top:2px;font-size:10px;font-weight:800;letter-spacing:.04em;
-  padding:2px 7px;border-radius:6px;
+  padding:2px 8px;border-radius:6px;
   background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff;
 }
 .nav-links{display:flex;align-items:center;gap:8px}
@@ -477,20 +476,21 @@ a{color:inherit;text-decoration:none}
   padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#cbd5e1;
   transition:.2s;cursor:pointer;border:1px solid transparent;
 }
-.nav-pill:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav-pill:hover{color:#fff;background:rgba(255,255,255,.06)}
 .nav-pill.active{
   background:linear-gradient(90deg,#9333ea,#6366f1);color:#fff;
-  box-shadow:0 4px 14px rgba(147,51,234,.35);
+  box-shadow:0 4px 14px rgba(147,51,234,.4);
 }
-.btn-zalo{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;
-  background:#162038;color:#60a5fa;border:1px solid rgba(59,130,246,.3);
+.btn-admin{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+  background:rgba(59,130,246,.14);color:#60a5fa;border:1px solid rgba(59,130,246,.35);
+  transition:.2s;
 }
-.btn-zalo:hover{background:#1d2b4a}
+.btn-admin:hover{background:rgba(59,130,246,.24);color:#93c5fd}
 
 /* MAIN CONTAINER */
-.wrap{max-width:840px;margin:0 auto;padding:24px 16px 96px}
+.wrap{max-width:840px;margin:0 auto;padding:22px 16px 96px}
 
 /* MODE CARD */
 .panel{
@@ -507,7 +507,7 @@ a{color:inherit;text-decoration:none}
 .panel-lbl{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .pill-tag{
   font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:999px;
-  background:rgba(236,72,153,.14);color:#f472b6;border:1px solid rgba(236,72,153,.28);
+  background:rgba(236,72,153,.14);color:#f472b6;border:1px solid rgba(236,72,153,.3);
 }
 .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .mode-btn{
@@ -517,12 +517,10 @@ a{color:inherit;text-decoration:none}
   font-weight:700;font-size:13.5px;text-align:left;transition:.2s;
 }
 .mode-btn.active{
-  background:linear-gradient(90deg,rgba(147,51,234,.26),rgba(79,70,229,.16));
-  border-color:#8b5cf6;color:#fff;
-  box-shadow:0 0 0 1px rgba(139,92,246,.3);
+  background:linear-gradient(90deg,rgba(147,51,234,.28),rgba(79,70,229,.18));
+  border-color:#a855f7;color:#fff;
+  box-shadow:0 0 0 1px rgba(168,85,247,.35);
 }
-.mode-dot{width:10px;height:10px;border-radius:50%;background:#475569;flex-shrink:0}
-.mode-btn.active .mode-dot{background:#ec4899;box-shadow:0 0 10px #ec4899}
 
 /* HERO */
 .hero{text-align:center;margin:28px 0 22px}
@@ -532,7 +530,7 @@ a{color:inherit;text-decoration:none}
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
 .hero p{
-  margin:10px auto 0;max-width:640px;color:var(--muted);font-size:13.5px;line-height:1.55;
+  margin:10px auto 0;max-width:650px;color:var(--muted);font-size:13.5px;line-height:1.55;
 }
 
 /* INPUT BOX */
@@ -584,6 +582,24 @@ a{color:inherit;text-decoration:none}
 .stat-num{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.02em}
 .stat-lbl{font-size:12px;color:var(--muted);margin-top:3px}
 
+/* PC INFO SECTION */
+.pc-box{
+  display:none;text-align:center;
+  background:rgba(19,19,31,.9);border:1px solid var(--border);
+  border-radius:20px;padding:28px 20px;margin-top:16px;
+}
+.pc-logo{
+  width:76px;height:76px;margin:0 auto 14px;border-radius:22px;
+  background:linear-gradient(135deg,#2e1065,#17153b);
+  border:2px solid #c084fc;box-shadow:0 0 28px rgba(192,132,252,.45);
+  display:flex;align-items:center;justify-content:center;
+}
+.pc-badge{
+  display:inline-block;padding:5px 14px;border-radius:999px;font-size:11.5px;font-weight:800;
+  background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.35);
+  margin-bottom:10px;
+}
+
 /* RESULTS AREA */
 .res-wrap{margin-top:20px;display:none}
 .res-head{
@@ -618,35 +634,55 @@ a{color:inherit;text-decoration:none}
 .ep-btn.play{background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
 .ep-btn.dl{background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff}
 
-/* VIDEO MODAL */
+/* MODAL */
 .modal{
   position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
   display:none;align-items:center;justify-content:center;padding:16px;
 }
 .modal.open{display:flex}
 .modal-box{
-  width:100%;max-width:440px;background:#13131f;border:1px solid var(--border);
-  border-radius:18px;padding:14px;
+  width:100%;max-width:420px;background:#13131f;border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);
 }
-.modal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.modal-close{background:#252538;border:0;color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-weight:700}
+.modal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.modal-close{background:#252538;border:0;color:#fff;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700}
 video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 
+/* ADMIN CARD IN MODAL */
+.admin-card{
+  background:#0d0d16;border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;
+}
+.admin-name{font-size:18px;font-weight:800;color:#fff;margin-top:8px}
+.admin-phone{
+  display:inline-block;margin:8px 0 14px;padding:6px 16px;border-radius:999px;
+  background:rgba(59,130,246,.15);color:#60a5fa;font-weight:800;font-size:16px;letter-spacing:.03em;
+}
+.admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-zalo-go{
+  padding:11px;border-radius:11px;font-weight:800;font-size:13px;text-align:center;
+  background:linear-gradient(90deg,#2563eb,#3b82f6);color:#fff;
+}
+.btn-copy-phone{
+  padding:11px;border-radius:11px;font-weight:800;font-size:13px;border:1px solid var(--border);
+  background:#1e1e2e;color:#fff;cursor:pointer;
+}
+
 /* FOOTER */
-.footer{text-align:center;margin-top:26px;font-size:11.5px;color:#64748b;line-height:1.6}
+.footer{text-align:center;margin-top:26px;font-size:11.5px;color:#64748b;line-height:1.7}
+.footer a{color:#60a5fa;font-weight:700}
 
 /* BOTTOM BAR */
 .bbar{
   position:fixed;bottom:0;left:0;right:0;z-index:40;
-  background:rgba(13,13,22,.92);backdrop-filter:blur(12px);
+  background:rgba(13,13,22,.94);backdrop-filter:blur(12px);
   border-top:1px solid var(--border);
-  display:flex;justify-content:center;gap:12px;padding:8px 16px;
+  display:flex;justify-content:center;gap:10px;padding:8px 12px;
 }
 .bitem{
   display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:6px 22px;border-radius:12px;font-size:11.5px;font-weight:700;color:#94a3b8;cursor:pointer;
+  padding:6px 18px;border-radius:12px;font-size:11.5px;font-weight:700;color:#94a3b8;cursor:pointer;
 }
-.bitem.active{background:rgba(139,92,246,.2);color:#fff;border:1px solid rgba(139,92,246,.35)}
+.bitem.active{background:rgba(139,92,246,.22);color:#fff;border:1px solid rgba(139,92,246,.38)}
 
 .toast{
   position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:70;
@@ -656,7 +692,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 }
 .toast.show{opacity:1}
 
-@media(max-width:640px){
+@media(max-width:680px){
   .nav-links .hide-m{display:none}
   .hero h1{font-size:23px}
   .mode-grid{grid-template-columns:1fr}
@@ -668,98 +704,141 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 <header class="nav">
   <div class="nav-in">
     <a class="brand" href="/">
-      <img src="https://raw.githubusercontent.com/haicon22/Pine_Pro/refs/heads/main/app.jpg" alt="Logo">
+      <div class="logo-box">
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
+          <path d="M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z" fill="#38bdf8"/>
+          <ellipse cx="32" cy="36" rx="18" ry="15" fill="#fb7185"/>
+          <path d="M15 33c3-6 31-6 34 0 1 8-4 17-17 17S14 41 15 33z" fill="#f43f5e"/>
+          <rect x="20" y="34" width="18" height="11" rx="5.5" fill="#ffe4e6"/>
+          <rect x="24" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+          <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+        </svg>
+      </div>
       <div>
         <div class="brand-title">Pine<span>Drama</span></div>
         <div class="badge-pro">PRO · VERCEL TURBO</div>
       </div>
     </a>
     <nav class="nav-links">
-      <span class="nav-pill active">Tải Video Web</span>
-      <span class="nav-pill hide-m" onclick="toast('Bản Python CLI chạy trên Termux/PC')">Bản Máy Tính (.PY)</span>
-      <a class="btn-zalo" href="#top" onclick="toast('Đã sẵn sàng bóc tách 1080p!')">⚡ API 1080p</a>
+      <span class="nav-pill active" id="tabWeb" onclick="switchTab('web')">Tải Video Web</span>
+      <span class="nav-pill hide-m" id="tabPc" onclick="switchTab('pc')">Bản Máy Tính</span>
+      <span class="nav-pill hide-m" onclick="openAdmin()">Liên hệ Admin</span>
+      <button type="button" class="btn-admin" onclick="openAdmin()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>Admin: Dương Đình Hải</span>
+      </button>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <section class="panel">
-    <div class="panel-head">
-      <span class="panel-lbl">Chế độ bóc tách dữ liệu</span>
-      <span class="pill-tag">Chế độ tải video phim ngắn không logo</span>
-    </div>
-    <div class="mode-grid">
-      <button type="button" class="mode-btn active" id="m-one" onclick="setMode('video')">
-        <span class="mode-dot"></span>
-        <span>Tải 1 Tập (Siêu Tốc 1080p)</span>
-      </button>
-      <button type="button" class="mode-btn" id="m-full" onclick="setMode('full')">
-        <span class="mode-dot"></span>
-        <span>Lấy Full Bộ Phim (Tất Cả Tập)</span>
-      </button>
-    </div>
-  </section>
-
-  <section class="hero">
-    <h1>Tải Video PineDrama Không Logo</h1>
-    <p>Bóc tách video gốc chuẩn 1080p Full HD từ PineDrama (ShortDrama). Hỗ trợ link chia sẻ từ app, văn bản chia sẻ kèm chữ, link web hoặc ID video trần.</p>
-  </section>
-
-  <section class="input-box">
-    <div class="url-row">
-      <span class="url-ico">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      </span>
-      <input type="text" id="urlInput" placeholder="Dán link video PineDrama (shortdrama.tiktok.com/t/...)..." autocomplete="off">
-      <button type="button" class="btn-clear" id="btnClear" onclick="clearInput()">✕</button>
-      <button type="button" class="btn-paste" onclick="pasteClip()">Dán</button>
-    </div>
-    <button type="button" class="btn-submit" id="btnGo" onclick="fetchVideo()">Lấy video không logo</button>
-  </section>
-
-  <section class="stats">
-    <div class="stat-card">
-      <div class="stat-num" id="stViews">128.453</div>
-      <div class="stat-lbl">Tổng lượt truy cập</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="stToday">3.281</div>
-      <div class="stat-lbl">Lượt tải hôm nay (GMT+7)</div>
-    </div>
-  </section>
-
-  <section class="res-wrap" id="resWrap">
-    <div class="res-head">
-      <div class="res-title" id="resTitle">Danh sách video</div>
-      <div class="res-actions">
-        <button type="button" class="btn-mini" onclick="copyAllLinks()">📋 Copy tất cả link MP4</button>
-        <button type="button" class="btn-mini" onclick="copyRawJson()">{} Copy JSON</button>
+  <div id="webSection">
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-lbl">Nền tảng &amp; Chế độ hỗ trợ tải</span>
+        <span class="pill-tag">Chế độ tải video phim ngắn không logo</span>
       </div>
+      <div class="mode-grid">
+        <button type="button" class="mode-btn active" id="m-one" onclick="setMode('video')">
+          <svg width="22" height="22" viewBox="0 0 64 64" fill="none" style="flex-shrink:0">
+            <rect width="64" height="64" rx="16" fill="#2e1065"/>
+            <path d="M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z" fill="#38bdf8"/>
+            <ellipse cx="32" cy="36" rx="18" ry="15" fill="#f43f5e"/>
+            <rect x="20" y="34" width="18" height="11" rx="5.5" fill="#ffe4e6"/>
+            <rect x="24" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+            <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+          </svg>
+          <span>PineDrama (Tải 1 Tập 1080p)</span>
+        </button>
+        <button type="button" class="mode-btn" id="m-full" onclick="setMode('full')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" style="flex-shrink:0"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <span>PineDrama Full Bộ (Tất Cả Tập)</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="hero">
+      <h1>Tải Video PineDrama Không Logo</h1>
+      <p>Bóc tách video không logo chuẩn 1080p Full HD từ PineDrama (ShortDrama). Hỗ trợ link app, văn bản chia sẻ kèm chữ, link web máy tính và ID trần.</p>
+    </section>
+
+    <section class="input-box">
+      <div class="url-row">
+        <span class="url-ico">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </span>
+        <input type="text" id="urlInput" placeholder="Dán link video PineDrama (shortdrama.tiktok.com/t/...)..." autocomplete="off">
+        <button type="button" class="btn-clear" id="btnClear" onclick="clearInput()">✕</button>
+        <button type="button" class="btn-paste" onclick="pasteClip()">Dán</button>
+      </div>
+      <button type="button" class="btn-submit" id="btnGo" onclick="fetchVideo()">Lấy video không logo</button>
+    </section>
+
+    <section class="stats">
+      <div class="stat-card">
+        <div class="stat-num" id="stViews">128.453</div>
+        <div class="stat-lbl">Tổng lượt truy cập</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stToday">3.281</div>
+        <div class="stat-lbl">Lượt tải hôm nay (GMT+7)</div>
+      </div>
+    </section>
+
+    <section class="res-wrap" id="resWrap">
+      <div class="res-head">
+        <div class="res-title" id="resTitle">Danh sách video</div>
+        <div class="res-actions">
+          <button type="button" class="btn-mini" onclick="copyAllLinks()">📋 Copy tất cả link MP4</button>
+          <button type="button" class="btn-mini" onclick="copyRawJson()">{} Copy JSON</button>
+        </div>
+      </div>
+      <div class="ep-grid" id="epGrid"></div>
+    </section>
+  </div>
+
+  <section class="pc-box" id="pcSection">
+    <div class="pc-logo">
+      <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+        <path d="M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z" fill="#38bdf8"/>
+        <ellipse cx="32" cy="36" rx="18" ry="15" fill="#fb7185"/>
+        <path d="M15 33c3-6 31-6 34 0 1 8-4 17-17 17S14 41 15 33z" fill="#f43f5e"/>
+        <rect x="20" y="34" width="18" height="11" rx="5.5" fill="#ffe4e6"/>
+        <rect x="24" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+        <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+      </svg>
     </div>
-    <div class="ep-grid" id="epGrid"></div>
+    <div class="pc-badge">● BẢN PHÁT HÀNH: v5.3.0 (CẬP NHẬT TỰ ĐỘNG)</div>
+    <h2 style="margin:4px 0 10px;font-size:26px;font-weight:800">Pine Drama PRO</h2>
+    <p style="max-width:560px;margin:0 auto 18px;color:var(--muted);font-size:13.5px;line-height:1.6">
+      Bộ phần mềm chuyên dụng cho máy tính Windows &amp; Termux: Tự động quét và tải hàng loạt trọn bộ 50 - 150 tập phim ngắn không logo từ PineDrama.
+    </p>
+    <button type="button" class="btn-submit" style="max-width:340px" onclick="openAdmin()">Liên hệ Admin Dương Đình Hải để nhận bản PC</button>
   </section>
 
   <footer class="footer">
     <div>PineDrama Downloader PRO • Bảo mật &amp; Tốc độ cao © 2026</div>
-    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành Vercel Cloud</div>
+    <div>Liên hệ hỗ trợ Admin: <a href="javascript:void(0)" onclick="openAdmin()">Dương Đình Hải - 0862732490</a></div>
+    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v5.3.0</div>
   </footer>
 </main>
 
 <div class="bbar">
-  <div class="bitem active" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <div class="bitem active" id="bWeb" onclick="switchTab('web')">
     <span>🏠</span>
     <span>Tải video</span>
   </div>
-  <div class="bitem" onclick="setMode('full');toast('Đã chuyển sang chế độ Lấy Full Bộ Phim')">
-    <span>🎬</span>
-    <span>Full bộ</span>
+  <div class="bitem" id="bPc" onclick="switchTab('pc')">
+    <span>💻</span>
+    <span>Bản máy tính</span>
   </div>
-  <div class="bitem" onclick="copyAllLinks()">
-    <span>🔗</span>
-    <span>Copy link</span>
+  <div class="bitem" onclick="openAdmin()">
+    <span>📞</span>
+    <span>Liên hệ Admin</span>
   </div>
 </div>
 
+<!-- VIDEO PLAYER MODAL -->
 <div class="modal" id="playerModal" onclick="if(event.target===this)closePlayer()">
   <div class="modal-box">
     <div class="modal-top">
@@ -767,6 +846,35 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
       <button type="button" class="modal-close" onclick="closePlayer()">Đóng ✕</button>
     </div>
     <video id="videoPlayer" controls playsinline></video>
+  </div>
+</div>
+
+<!-- ADMIN CONTACT MODAL -->
+<div class="modal" id="adminModal" onclick="if(event.target===this)closeAdmin()">
+  <div class="modal-box">
+    <div class="modal-top">
+      <strong>Thông tin liên hệ Admin</strong>
+      <button type="button" class="modal-close" onclick="closeAdmin()">Đóng ✕</button>
+    </div>
+    <div class="admin-card">
+      <div class="logo-box" style="margin:0 auto;width:54px;height:54px">
+        <svg width="34" height="34" viewBox="0 0 64 64" fill="none">
+          <path d="M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z" fill="#38bdf8"/>
+          <ellipse cx="32" cy="36" rx="18" ry="15" fill="#fb7185"/>
+          <path d="M15 33c3-6 31-6 34 0 1 8-4 17-17 17S14 41 15 33z" fill="#f43f5e"/>
+          <rect x="20" y="34" width="18" height="11" rx="5.5" fill="#ffe4e6"/>
+          <rect x="24" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+          <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
+        </svg>
+      </div>
+      <div class="admin-name">Dương Đình Hải</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">Quản trị viên hệ thống PineDrama PRO</div>
+      <div class="admin-phone">0862732490</div>
+      <div class="admin-actions">
+        <a class="btn-zalo-go" href="https://zalo.me/0862732490" target="_blank" rel="noopener">💬 Nhắn Zalo ngay</a>
+        <button type="button" class="btn-copy-phone" onclick="copyPhone()">📋 Copy SĐT</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -784,6 +892,22 @@ function toast(msg){
   t.classList.add("show");
   clearTimeout(window._tt);
   window._tt = setTimeout(() => t.classList.remove("show"), 2000);
+}
+
+function switchTab(tab){
+  const isWeb = tab === "web";
+  $("webSection").style.display = isWeb ? "block" : "none";
+  $("pcSection").style.display = isWeb ? "none" : "block";
+  $("tabWeb").classList.toggle("active", isWeb);
+  $("tabPc").classList.toggle("active", !isWeb);
+  $("bWeb").classList.toggle("active", isWeb);
+  $("bPc").classList.toggle("active", !isWeb);
+}
+
+function openAdmin(){ $("adminModal").classList.add("open"); }
+function closeAdmin(){ $("adminModal").classList.remove("open"); }
+function copyPhone(){
+  navigator.clipboard.writeText("0862732490").then(() => toast("Đã copy SĐT: 0862732490"));
 }
 
 function setMode(m){
