@@ -505,6 +505,7 @@ INDEX_HTML = r"""<!doctype html>
 <meta name="theme-color" content="#0b0b12">
 <title>PineDrama PRO · Dương Đình Hải</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232e1065'/%3E%3Cstop offset='100%25' stop-color='%231e1b4b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z' fill='%2338bdf8'/%3E%3Cellipse cx='32' cy='36' rx='17' ry='15' fill='%23fb7185'/%3E%3Cpath d='M16 33c3-6 29-6 32 0 1 8-4 16-16 16S15 41 16 33z' fill='%23f43f5e'/%3E%3Crect x='21' y='34' width='17' height='11' rx='5.5' fill='%23ffe4e6'/%3E%3Crect x='25' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3Crect x='31' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
 <style>
 :root{
   --bg:#0b0b12;
@@ -712,6 +713,7 @@ a{color:inherit;text-decoration:none}
 .ep-btn.play{background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
 .ep-btn.dl{background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff}
 .ep-btn.dl-vi{background:linear-gradient(90deg,#f59e0b,#ea580c);color:#fff}
+.ep-btn:disabled{opacity:.6;cursor:wait}
 
 .modal{
   position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.85);
@@ -840,7 +842,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
 
     <section class="hero">
       <h1>Tải Video PineDrama Không Logo</h1>
-      <p>Bóc tách và tải thẳng file MP4 không logo &amp; giọng lồng tiếng Việt trực tiếp về điện thoại và máy tính.</p>
+      <p>Tự động ghép sẵn giọng Lồng Tiếng Việt vào video MP4 hoàn chỉnh trên cả iPhone, Android, Windows và macOS.</p>
     </section>
 
     <section class="input-box">
@@ -861,7 +863,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
         <div class="stat-lbl">Tổng lượt truy cập</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" id="stToday">3.284</div>
+        <div class="stat-num" id="stToday">3.285</div>
         <div class="stat-lbl">Lượt tải hôm nay (GMT+7)</div>
       </div>
     </section>
@@ -889,7 +891,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
         <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
       </svg>
     </div>
-    <div class="pc-badge">● BẢN PHÁT HÀNH: v5.7.0 (UNIVERSAL)</div>
+    <div class="pc-badge">● BẢN PHÁT HÀNH: v5.8.0 (MP4BOX PURE JS MUXER)</div>
     <h2 style="margin:4px 0 10px;font-size:24px;font-weight:800">Pine Drama PRO</h2>
     <p style="max-width:560px;margin:0 auto 18px;color:var(--muted);font-size:13.5px;line-height:1.6">
       Bộ phần mềm chuyên dụng cho Windows, macOS &amp; Termux: Tự động quét và tải hàng loạt trọn bộ 50 - 150 tập phim ngắn không logo từ PineDrama.
@@ -900,7 +902,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
   <footer class="footer">
     <div>PineDrama Downloader PRO • Bảo mật &amp; Tốc độ cao © 2026</div>
     <div>Liên hệ hỗ trợ Admin: <a href="javascript:void(0)" onclick="openAdmin()">Dương Đình Hải - 0862732490</a></div>
-    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v5.7.0</div>
+    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v5.8.0</div>
   </footer>
 </main>
 
@@ -970,7 +972,7 @@ function toast(msg){
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(window._tt);
-  window._tt = setTimeout(() => t.classList.remove("show"), 2500);
+  window._tt = setTimeout(() => t.classList.remove("show"), 2600);
 }
 
 function copyTextSafe(text, okMsg){
@@ -1046,7 +1048,7 @@ async function pasteClip(){
 function updateClock(){
   const now = new Date();
   const s = now.toLocaleString("vi-VN", {timeZone:"Asia/Ho_Chi_Minh"});
-  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v5.7.0";
+  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v5.8.0";
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1076,7 +1078,7 @@ async function fetchVideo(){
     }
     lastData = data;
     renderResults(data);
-    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3284;
+    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3285;
     $("stToday").textContent = (curToday + 1).toLocaleString("vi-VN");
     toast("Bóc tách thành công " + data.length + " video!");
   }catch(err){
@@ -1084,6 +1086,131 @@ async function fetchVideo(){
   }finally{
     btn.disabled = false;
     setMode(currentMode);
+  }
+}
+
+function parseMp4Demux(arrayBuffer){
+  return new Promise((resolve, reject) => {
+    const file = MP4Box.createFile();
+    let infoData = null;
+    const samplesByTrack = {};
+    file.onError = (e) => reject(new Error(e));
+    file.onReady = (info) => {
+      infoData = info;
+      info.tracks.forEach(t => {
+        samplesByTrack[t.id] = [];
+        file.setExtractionOptions(t.id, null, { nbSamples: 50000 });
+      });
+      file.start();
+    };
+    file.onSamples = (id, user, samples) => {
+      samplesByTrack[id].push(...samples);
+    };
+    const buf = arrayBuffer.slice(0);
+    buf.fileStart = 0;
+    file.appendBuffer(buf);
+    file.flush();
+    setTimeout(() => {
+      if(!infoData) return reject(new Error("Không đọc được luồng MP4"));
+      resolve({ file, info: infoData, samplesByTrack });
+    }, 60);
+  });
+}
+
+async function muxPureJsAndDownload(btnEl, videoUrl, audioUrl, fileName){
+  const oldText = btnEl.textContent;
+  btnEl.disabled = true;
+  try{
+    if(typeof MP4Box === "undefined"){
+      throw new Error("Chưa nạp xong bộ trộn MP4Box");
+    }
+    btnEl.textContent = "⏳ Đang tải luồng hình & tiếng...";
+    const vProxy = `/api/download?url=${encodeURIComponent(videoUrl)}&name=v.mp4`;
+    const aProxy = `/api/download?url=${encodeURIComponent(audioUrl)}&name=a.m4a`;
+
+    const [vResp, aResp] = await Promise.all([fetch(vProxy), fetch(aProxy)]);
+    if(!vResp.ok || !aResp.ok) throw new Error("Lỗi tải luồng dữ liệu từ máy chủ");
+
+    const [vBuf, aBuf] = await Promise.all([vResp.arrayBuffer(), aResp.arrayBuffer()]);
+
+    btnEl.textContent = "⚙️ Đang ghép giọng Việt...";
+    const [vParsed, aParsed] = await Promise.all([parseMp4Demux(vBuf), parseMp4Demux(aBuf)]);
+
+    const vTrack = vParsed.info.videoTracks[0];
+    const aTrack = aParsed.info.audioTracks[0];
+    if(!vTrack || !aTrack) throw new Error("Thiếu luồng hình hoặc tiếng Việt");
+
+    const outFile = MP4Box.createFile();
+
+    const vTrakBox = vParsed.file.getTrackById(vTrack.id);
+    const vEntry = vTrakBox.mdia.minf.stbl.stsd.entries[0];
+    const newVId = outFile.addTrack({
+      timescale: vTrack.timescale,
+      width: vTrack.video.width,
+      height: vTrack.video.height,
+      brands: ["isom", "iso2", "avc1", "mp41"],
+      avcDecoderConfigRecord: vEntry.avcC ? vEntry.avcC.data : undefined,
+      hevcDecoderConfigRecord: vEntry.hvcC ? vEntry.hvcC.data : undefined,
+      type: vEntry.type,
+      hdlr: "vide"
+    });
+
+    const aTrakBox = aParsed.file.getTrackById(aTrack.id);
+    const aEntry = aTrakBox.mdia.minf.stbl.stsd.entries[0];
+    const newAId = outFile.addTrack({
+      timescale: aTrack.timescale,
+      samplerate: aTrack.audio.sample_rate,
+      channel_count: aTrack.audio.channel_count,
+      samplesize: aTrack.audio.sample_size,
+      esds: aEntry.esds ? aEntry.esds.data : undefined,
+      type: aEntry.type,
+      hdlr: "soun"
+    });
+
+    const vSamples = vParsed.samplesByTrack[vTrack.id] || [];
+    for(const s of vSamples){
+      outFile.addSample(newVId, s.data, {
+        duration: s.duration,
+        dts: s.dts,
+        cts: s.cts,
+        is_sync: s.is_sync
+      });
+    }
+
+    const aSamples = aParsed.samplesByTrack[aTrack.id] || [];
+    for(const s of aSamples){
+      outFile.addSample(newAId, s.data, {
+        duration: s.duration,
+        dts: s.dts,
+        cts: s.cts,
+        is_sync: s.is_sync
+      });
+    }
+
+    const stream = new DataStream();
+    stream.endianness = DataStream.BIG_ENDIAN;
+    outFile.write(stream);
+
+    const blob = new Blob([stream.buffer], { type: "video/mp4" });
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    }, 4000);
+
+    toast("✅ Đã tải về video MP4 có giọng Tiếng Việt!");
+  }catch(e){
+    toast("Lỗi ghép video: " + (e.message || "Thử lại sau"));
+  }finally{
+    btnEl.disabled = false;
+    btnEl.textContent = oldText;
   }
 }
 
@@ -1117,7 +1244,7 @@ function renderResults(items){
     const rawUrl = (best.urls && best.urls[0]) || best.api_url || "";
     const qual = best.quality || "HD";
     const codec = (best.codec || "h264").toUpperCase();
-    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + ".mp4")}`;
+    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_Goc.mp4")}`;
 
     let viHtml = "";
     let badgeHtml = `<span class="ep-qual">${qual} · ${codec}</span>`;
@@ -1127,14 +1254,14 @@ function renderResults(items){
       const viUrl = (viBest.urls && viBest.urls[0]) || viBest.api_url || "";
       if(viUrl){
         const proxyVi = `/api/download?url=${encodeURIComponent(viUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_TiengViet.mp4")}`;
-        badgeHtml = `<span class="ep-qual vi">🇻🇳 Có Tiếng Việt · ${qual}</span>`;
-        viHtml = `<a class="ep-btn dl-vi" href="${proxyVi}" download="PineDrama_Tap_${epNum}_TiengViet.mp4">⬇ Tải MP4 Việt</a>`;
+        badgeHtml = `<span class="ep-qual vi">🇻🇳 MP4 Tiếng Việt · ${qual}</span>`;
+        viHtml = `<a class="ep-btn dl-vi" href="${proxyVi}" download="PineDrama_Tap_${epNum}_TiengViet.mp4">⬇ Tải MP4 Tiếng Việt</a>`;
       }
     } else if(item.vi_audio && item.vi_audio.length > 0){
       const audUrl = item.vi_audio[0];
-      const proxyAud = `/api/download?url=${encodeURIComponent(audUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_GiongViet.m4a")}`;
-      badgeHtml = `<span class="ep-qual vi">🇻🇳 Kèm Audio Việt · ${qual}</span>`;
-      viHtml = `<a class="ep-btn dl-vi" href="${proxyAud}" download="PineDrama_Tap_${epNum}_GiongViet.m4a">⬇ Giọng Việt (M4A)</a>`;
+      const outName = `PineDrama_Tap_${epNum}_TiengViet.mp4`;
+      badgeHtml = `<span class="ep-qual vi">🇻🇳 MP4 Tiếng Việt · ${qual}</span>`;
+      viHtml = `<button type="button" class="ep-btn dl-vi" onclick="muxPureJsAndDownload(this, '${rawUrl}', '${audUrl}', '${outName}')">⬇ Tải MP4 Tiếng Việt</button>`;
     }
 
     card.innerHTML = `
@@ -1145,8 +1272,8 @@ function renderResults(items){
       <div class="ep-meta">ID: ${item.video_id || "N/A"}</div>
       <div class="ep-btns">
         <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${rawUrl}')">▶ Xem</button>
-        <a class="ep-btn dl" href="${proxyOrig}" download="PineDrama_Tap_${epNum}.mp4">⬇ Tải Video MP4</a>
         ${viHtml}
+        <a class="ep-btn dl" href="${proxyOrig}" download="PineDrama_Tap_${epNum}_Goc.mp4">⬇ Tải Giọng Gốc</a>
       </div>
     `;
     grid.appendChild(card);
