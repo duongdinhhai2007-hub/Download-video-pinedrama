@@ -499,12 +499,12 @@ INDEX_HTML = r"""<!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0b12">
 <title>PineDrama PRO · Dương Đình Hải</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232e1065'/%3E%3Cstop offset='100%25' stop-color='%231e1b4b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z' fill='%2338bdf8'/%3E%3Cellipse cx='32' cy='36' rx='17' ry='15' fill='%23fb7185'/%3E%3Cpath d='M16 33c3-6 29-6 32 0 1 8-4 16-16 16S15 41 16 33z' fill='%23f43f5e'/%3E%3Crect x='21' y='34' width='17' height='11' rx='5.5' fill='%23ffe4e6'/%3E%3Crect x='25' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3Crect x='31' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3C/svg%3E">
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
 <style>
 :root{
   --bg:#0b0b12;
@@ -518,42 +518,47 @@ INDEX_HTML = r"""<!doctype html>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{
   margin:0;
+  padding:0;
   min-height:100vh;
-  background:radial-gradient(circle at 50% 0%, #23173d 0%, #0b0b12 62%);
+  background:#0b0b12;
+  background-image:radial-gradient(circle at 50% 0%, #23173d 0%, #0b0b12 62%);
   color:var(--text);
-  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%;
 }
 a{color:inherit;text-decoration:none}
 
 .nav{
   position:sticky;top:0;z-index:40;
-  background:rgba(11,11,18,.84);
+  background:rgba(11,11,18,.92);
+  -webkit-backdrop-filter:blur(14px);
   backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);
+  padding-top:env(safe-area-inset-top);
 }
 .nav-in{
-  max-width:1040px;margin:0 auto;padding:12px 18px;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  max-width:1040px;margin:0 auto;padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
 }
-.brand{display:flex;align-items:center;gap:11px}
+.brand{display:flex;align-items:center;gap:9px;min-width:0;flex-shrink:0}
 .logo-box{
-  width:42px;height:42px;border-radius:13px;flex-shrink:0;
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
   background:linear-gradient(135deg,#2e1065,#17153b);
   border:1.5px solid rgba(236,72,153,.55);
-  box-shadow:0 0 16px rgba(236,72,153,.35);
+  box-shadow:0 0 14px rgba(236,72,153,.35);
   display:flex;align-items:center;justify-content:center;
 }
-.brand-title{font-weight:800;font-size:18px;letter-spacing:-.02em;display:flex;align-items:center}
+.brand-title{font-weight:800;font-size:17px;letter-spacing:-.02em;line-height:1.1}
 .brand-title span{color:#e879f9}
 .badge-pro{
-  display:inline-block;margin-top:2px;font-size:10px;font-weight:800;letter-spacing:.04em;
-  padding:2px 8px;border-radius:6px;
+  display:inline-block;margin-top:2px;font-size:9px;font-weight:800;letter-spacing:.03em;
+  padding:2px 6px;border-radius:5px;
   background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff;
 }
-.nav-links{display:flex;align-items:center;gap:8px}
+.nav-links{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
 .nav-pill{
-  padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#cbd5e1;
-  transition:.2s;cursor:pointer;border:1px solid transparent;background:transparent;
+  padding:7px 12px;border-radius:10px;font-size:12.5px;font-weight:700;color:#cbd5e1;
+  transition:.2s;cursor:pointer;border:1px solid transparent;background:transparent;white-space:nowrap;
 }
 .nav-pill:hover{color:#fff;background:rgba(255,255,255,.06)}
 .nav-pill.active{
@@ -561,37 +566,37 @@ a{color:inherit;text-decoration:none}
   box-shadow:0 4px 14px rgba(147,51,234,.4);
 }
 .btn-admin{
-  display:inline-flex;align-items:center;gap:7px;
-  padding:7px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 11px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;
   background:rgba(59,130,246,.14);color:#60a5fa;border:1px solid rgba(59,130,246,.35);
-  transition:.2s;
+  transition:.2s;white-space:nowrap;
 }
 .btn-admin:hover{background:rgba(59,130,246,.24);color:#93c5fd}
 
-.wrap{max-width:840px;margin:0 auto;padding:22px 16px 96px}
+.wrap{max-width:840px;margin:0 auto;padding:18px 14px calc(92px + env(safe-area-inset-bottom))}
 
 .panel{
-  background:rgba(19,19,31,.86);
+  background:rgba(19,19,31,.9);
   border:1px solid var(--border);
   border-radius:18px;
-  padding:16px;
+  padding:14px;
   box-shadow:0 12px 32px rgba(0,0,0,.35);
 }
 .panel-head{
   display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
 .panel-lbl{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .pill-tag{
-  font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:999px;
+  font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;
   background:rgba(236,72,153,.14);color:#f472b6;border:1px solid rgba(236,72,153,.3);
 }
 .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .mode-btn{
   display:flex;align-items:center;gap:10px;
-  padding:12px 14px;border-radius:12px;cursor:pointer;
+  padding:12px 13px;border-radius:12px;cursor:pointer;
   background:#11111b;border:1px solid var(--border);color:#cbd5e1;
-  font-weight:700;font-size:13.5px;text-align:left;transition:.2s;
+  font-weight:700;font-size:13px;text-align:left;transition:.2s;
 }
 .mode-btn.active{
   background:linear-gradient(90deg,rgba(147,51,234,.28),rgba(79,70,229,.18));
@@ -599,46 +604,45 @@ a{color:inherit;text-decoration:none}
   box-shadow:0 0 0 1px rgba(168,85,247,.35);
 }
 
-.hero{text-align:center;margin:28px 0 22px}
+.hero{text-align:center;margin:22px 0 18px;padding:0 4px}
 .hero h1{
-  margin:0;font-size:30px;font-weight:800;letter-spacing:-.025em;
-  background:linear-gradient(180deg,#ffffff 30%,#cbd5e1 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin:0;font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.25;
+  color:#ffffff;
 }
 .hero p{
-  margin:10px auto 0;max-width:650px;color:var(--muted);font-size:13.5px;line-height:1.55;
+  margin:8px auto 0;max-width:640px;color:var(--muted);font-size:13.5px;line-height:1.55;
 }
 
 .input-box{
-  background:rgba(19,19,31,.92);
+  background:rgba(19,19,31,.94);
   border:1px solid var(--border);
   border-radius:20px;
-  padding:16px;
+  padding:14px;
   box-shadow:0 16px 40px rgba(0,0,0,.45);
 }
 .url-row{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:6px;
   background:#0c0c14;border:1px solid rgba(255,255,255,.1);
-  border-radius:13px;padding:6px 8px 6px 14px;
+  border-radius:13px;padding:6px 8px 6px 12px;
   transition:.2s;
 }
 .url-row:focus-within{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.18)}
 .url-ico{color:#a855f7;flex-shrink:0;display:flex}
 .url-row input{
   flex:1;min-width:0;border:0;outline:0;background:transparent;
-  color:#fff;font-size:14px;padding:8px 4px;
+  color:#fff;font-size:16px;padding:7px 4px;
 }
-.url-row input::placeholder{color:#64748b}
+.url-row input::placeholder{color:#64748b;font-size:13.5px}
 .btn-paste{
   border:1px solid rgba(255,255,255,.12);background:#1e1e2e;color:#e2e8f0;
-  border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;
+  border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;flex-shrink:0;
 }
 .btn-paste:hover{background:#2a2a3f}
 .btn-clear{
-  border:0;background:transparent;color:#64748b;font-size:16px;cursor:pointer;padding:4px 6px;display:none;
+  border:0;background:transparent;color:#64748b;font-size:16px;cursor:pointer;padding:4px 6px;display:none;flex-shrink:0;
 }
 .btn-submit{
-  width:100%;margin-top:12px;border:0;border-radius:13px;padding:14px 20px;
+  width:100%;margin-top:12px;border:0;border-radius:13px;padding:14px 18px;
   font-size:15px;font-weight:800;color:#fff;cursor:pointer;
   background:linear-gradient(90deg,#fb923c 0%,#ec4899 52%,#8b5cf6 100%);
   box-shadow:0 10px 25px rgba(236,72,153,.32);
@@ -648,27 +652,27 @@ a{color:inherit;text-decoration:none}
 .btn-submit:active{transform:scale(.99)}
 .btn-submit:disabled{opacity:.6;cursor:not-allowed}
 
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .stat-card{
-  background:rgba(19,19,31,.82);border:1px solid var(--border);
-  border-radius:15px;padding:16px;text-align:center;
+  background:rgba(19,19,31,.85);border:1px solid var(--border);
+  border-radius:15px;padding:14px;text-align:center;
 }
-.stat-num{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.02em}
-.stat-lbl{font-size:12px;color:var(--muted);margin-top:3px}
+.stat-num{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.stat-lbl{font-size:11.5px;color:var(--muted);margin-top:3px}
 
 .pc-box{
   display:none;text-align:center;
-  background:rgba(19,19,31,.9);border:1px solid var(--border);
-  border-radius:20px;padding:28px 20px;margin-top:16px;
+  background:rgba(19,19,31,.92);border:1px solid var(--border);
+  border-radius:20px;padding:26px 18px;margin-top:12px;
 }
 .pc-logo{
-  width:76px;height:76px;margin:0 auto 14px;border-radius:22px;
+  width:72px;height:72px;margin:0 auto 14px;border-radius:20px;
   background:linear-gradient(135deg,#2e1065,#17153b);
   border:2px solid #c084fc;box-shadow:0 0 28px rgba(192,132,252,.45);
   display:flex;align-items:center;justify-content:center;
 }
 .pc-badge{
-  display:inline-block;padding:5px 14px;border-radius:999px;font-size:11.5px;font-weight:800;
+  display:inline-block;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;
   background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.35);
   margin-bottom:10px;
 }
@@ -702,15 +706,16 @@ a{color:inherit;text-decoration:none}
 .ep-meta{font-size:11.5px;color:var(--muted)}
 .ep-btns{display:flex;gap:7px;flex-wrap:wrap}
 .ep-btn{
-  flex:1;min-width:95px;text-align:center;padding:8px 8px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:0;
+  flex:1;min-width:92px;text-align:center;padding:10px 8px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;border:0;
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
 }
 .ep-btn.play{background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
 .ep-btn.dl{background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff}
 .ep-btn.dl-vi{background:linear-gradient(90deg,#f59e0b,#ea580c);color:#fff}
-.ep-btn:disabled{opacity:.6;cursor:wait}
 
 .modal{
-  position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+  position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.85);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
   display:none;align-items:center;justify-content:center;padding:16px;
 }
 .modal.open{display:flex}
@@ -720,7 +725,7 @@ a{color:inherit;text-decoration:none}
 }
 .modal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .modal-close{background:#252538;border:0;color:#fff;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700}
-video{width:100%;max-height:70vh;border-radius:12px;background:#000}
+video{width:100%;max-height:68vh;border-radius:12px;background:#000}
 
 .admin-card{
   background:#0d0d16;border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;
@@ -740,33 +745,37 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
   background:#1e1e2e;color:#fff;cursor:pointer;
 }
 
-.footer{text-align:center;margin-top:26px;font-size:11.5px;color:#64748b;line-height:1.7}
+.footer{text-align:center;margin-top:24px;font-size:11.5px;color:#64748b;line-height:1.7}
 .footer a{color:#60a5fa;font-weight:700}
 
 .bbar{
   position:fixed;bottom:0;left:0;right:0;z-index:40;
-  background:rgba(13,13,22,.94);backdrop-filter:blur(12px);
+  background:rgba(13,13,22,.95);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
   border-top:1px solid var(--border);
-  display:flex;justify-content:center;gap:10px;padding:8px 12px;
+  display:flex;justify-content:center;gap:8px;
+  padding:8px 12px calc(8px + env(safe-area-inset-bottom));
 }
 .bitem{
   display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:6px 18px;border-radius:12px;font-size:11.5px;font-weight:700;color:#94a3b8;cursor:pointer;
+  padding:6px 16px;border-radius:12px;font-size:11.5px;font-weight:700;color:#94a3b8;cursor:pointer;
   background:none;border:0;
 }
 .bitem.active{background:rgba(139,92,246,.22);color:#fff;border:1px solid rgba(139,92,246,.38)}
 
 .toast{
-  position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:70;
+  position:fixed;left:50%;bottom:calc(74px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;
   background:#fff;color:#0f172a;padding:9px 16px;border-radius:999px;
   font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.4);
-  opacity:0;pointer-events:none;transition:.2s;
+  opacity:0;pointer-events:none;transition:.2s;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;
 }
 .toast.show{opacity:1}
 
 @media(max-width:680px){
   .nav-links .hide-m{display:none}
-  .hero h1{font-size:23px}
+  .nav-pill{padding:6px 10px;font-size:11.5px}
+  .btn-admin{padding:6px 9px;font-size:11px}
+  .hero h1{font-size:22px}
   .mode-grid{grid-template-columns:1fr}
 }
 </style>
@@ -777,7 +786,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
   <div class="nav-in">
     <a class="brand" href="/">
       <div class="logo-box">
-        <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
+        <svg width="26" height="26" viewBox="0 0 64 64" fill="none">
           <path d="M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z" fill="#38bdf8"/>
           <ellipse cx="32" cy="36" rx="18" ry="15" fill="#fb7185"/>
           <path d="M15 33c3-6 31-6 34 0 1 8-4 17-17 17S14 41 15 33z" fill="#f43f5e"/>
@@ -788,15 +797,15 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
       </div>
       <div>
         <div class="brand-title">Pine<span>Drama</span></div>
-        <div class="badge-pro">PRO · VERCEL TURBO</div>
+        <div class="badge-pro">PRO · ALL DEVICES</div>
       </div>
     </a>
     <nav class="nav-links">
-      <button type="button" class="nav-pill active" id="tabWeb" onclick="switchTab('web')">Tải Video Web</button>
+      <button type="button" class="nav-pill active" id="tabWeb" onclick="switchTab('web')">Tải Web</button>
       <button type="button" class="nav-pill hide-m" id="tabPc" onclick="switchTab('pc')">Bản Máy Tính</button>
       <button type="button" class="nav-pill hide-m" onclick="openAdmin()">Liên hệ Admin</button>
       <button type="button" class="btn-admin" onclick="openAdmin()">
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
         <span>Admin: Dương Đình Hải</span>
       </button>
     </nav>
@@ -808,7 +817,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
     <section class="panel">
       <div class="panel-head">
         <span class="panel-lbl">Nền tảng &amp; Chế độ hỗ trợ tải</span>
-        <span class="pill-tag">Chế độ tải video phim ngắn không logo</span>
+        <span class="pill-tag">Tương thích Android · iOS · Windows · macOS</span>
       </div>
       <div class="mode-grid">
         <button type="button" class="mode-btn active" id="m-one" onclick="setMode('video')">
@@ -831,7 +840,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 
     <section class="hero">
       <h1>Tải Video PineDrama Không Logo</h1>
-      <p>Bóc tách và xuất file MP4 chuẩn 1080p Full HD từ PineDrama. Tự động ghép sẵn giọng Lồng Tiếng Việt thành video MP4 hoàn chỉnh.</p>
+      <p>Bóc tách và tải thẳng file MP4 không logo &amp; giọng lồng tiếng Việt trực tiếp về điện thoại và máy tính.</p>
     </section>
 
     <section class="input-box">
@@ -839,7 +848,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
         <span class="url-ico">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
         </span>
-        <input type="text" id="urlInput" placeholder="Dán link video PineDrama (shortdrama.tiktok.com/t/...)..." autocomplete="off">
+        <input type="url" id="urlInput" placeholder="Dán link video PineDrama (shortdrama.tiktok.com/t/...)..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <button type="button" class="btn-clear" id="btnClear" onclick="clearInput()">✕</button>
         <button type="button" class="btn-paste" onclick="pasteClip()">Dán</button>
       </div>
@@ -852,7 +861,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
         <div class="stat-lbl">Tổng lượt truy cập</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" id="stToday">3.281</div>
+        <div class="stat-num" id="stToday">3.284</div>
         <div class="stat-lbl">Lượt tải hôm nay (GMT+7)</div>
       </div>
     </section>
@@ -871,7 +880,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 
   <section class="pc-box" id="pcSection">
     <div class="pc-logo">
-      <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
+      <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
         <path d="M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z" fill="#38bdf8"/>
         <ellipse cx="32" cy="36" rx="18" ry="15" fill="#fb7185"/>
         <path d="M15 33c3-6 31-6 34 0 1 8-4 17-17 17S14 41 15 33z" fill="#f43f5e"/>
@@ -880,10 +889,10 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
         <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
       </svg>
     </div>
-    <div class="pc-badge">● BẢN PHÁT HÀNH: v5.5.0 (AUTO MUX MP4)</div>
-    <h2 style="margin:4px 0 10px;font-size:26px;font-weight:800">Pine Drama PRO</h2>
+    <div class="pc-badge">● BẢN PHÁT HÀNH: v5.7.0 (UNIVERSAL)</div>
+    <h2 style="margin:4px 0 10px;font-size:24px;font-weight:800">Pine Drama PRO</h2>
     <p style="max-width:560px;margin:0 auto 18px;color:var(--muted);font-size:13.5px;line-height:1.6">
-      Bộ phần mềm chuyên dụng cho máy tính Windows &amp; Termux: Tự động quét và tải hàng loạt trọn bộ 50 - 150 tập phim ngắn không logo từ PineDrama.
+      Bộ phần mềm chuyên dụng cho Windows, macOS &amp; Termux: Tự động quét và tải hàng loạt trọn bộ 50 - 150 tập phim ngắn không logo từ PineDrama.
     </p>
     <button type="button" class="btn-submit" style="max-width:340px" onclick="openAdmin()">Liên hệ Admin Dương Đình Hải để nhận bản PC</button>
   </section>
@@ -891,7 +900,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
   <footer class="footer">
     <div>PineDrama Downloader PRO • Bảo mật &amp; Tốc độ cao © 2026</div>
     <div>Liên hệ hỗ trợ Admin: <a href="javascript:void(0)" onclick="openAdmin()">Dương Đình Hải - 0862732490</a></div>
-    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v5.5.0</div>
+    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v5.7.0</div>
   </footer>
 </main>
 
@@ -916,7 +925,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
       <strong id="modalTitle">Xem trước video</strong>
       <button type="button" class="modal-close" onclick="closePlayer()">Đóng ✕</button>
     </div>
-    <video id="videoPlayer" controls playsinline></video>
+    <video id="videoPlayer" controls playsinline webkit-playsinline preload="metadata"></video>
   </div>
 </div>
 
@@ -953,7 +962,6 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 <script>
 let currentMode = "video";
 let lastData = [];
-let ffmpegInstance = null;
 
 function $(id){ return document.getElementById(id); }
 
@@ -962,7 +970,27 @@ function toast(msg){
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(window._tt);
-  window._tt = setTimeout(() => t.classList.remove("show"), 2600);
+  window._tt = setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+function copyTextSafe(text, okMsg){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(() => toast(okMsg)).catch(() => fallbackCopy(text, okMsg));
+  } else {
+    fallbackCopy(text, okMsg);
+  }
+}
+
+function fallbackCopy(text, okMsg){
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try{ document.execCommand("copy"); toast(okMsg); }catch(e){ toast("Không thể tự động copy"); }
+  ta.remove();
 }
 
 function switchTab(tab){
@@ -977,9 +1005,7 @@ function switchTab(tab){
 
 function openAdmin(){ $("adminModal").classList.add("open"); }
 function closeAdmin(){ $("adminModal").classList.remove("open"); }
-function copyPhone(){
-  navigator.clipboard.writeText("0862732490").then(() => toast("Đã copy SĐT: 0862732490"));
-}
+function copyPhone(){ copyTextSafe("0862732490", "Đã copy SĐT: 0862732490"); }
 
 function setMode(m){
   currentMode = m;
@@ -1000,23 +1026,27 @@ function clearInput(){
 
 async function pasteClip(){
   try{
-    const txt = await navigator.clipboard.readText();
-    if(txt){
-      $("urlInput").value = txt;
-      $("btnClear").style.display = "block";
-      toast("Đã dán liên kết!");
-    } else {
-      toast("Bộ nhớ tạm đang trống");
+    if(navigator.clipboard && navigator.clipboard.readText){
+      const txt = await navigator.clipboard.readText();
+      if(txt){
+        $("urlInput").value = txt;
+        $("btnClear").style.display = "block";
+        toast("Đã dán liên kết!");
+        return;
+      }
     }
+    $("urlInput").focus();
+    toast("Chạm vào ô nhập và chọn Dán");
   }catch(e){
-    toast("Hãy nhấn giữ ô nhập và chọn Dán");
+    $("urlInput").focus();
+    toast("Chạm vào ô nhập và chọn Dán");
   }
 }
 
 function updateClock(){
   const now = new Date();
   const s = now.toLocaleString("vi-VN", {timeZone:"Asia/Ho_Chi_Minh"});
-  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v5.5.0";
+  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v5.7.0";
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1046,7 +1076,7 @@ async function fetchVideo(){
     }
     lastData = data;
     renderResults(data);
-    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3281;
+    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3284;
     $("stToday").textContent = (curToday + 1).toLocaleString("vi-VN");
     toast("Bóc tách thành công " + data.length + " video!");
   }catch(err){
@@ -1054,64 +1084,6 @@ async function fetchVideo(){
   }finally{
     btn.disabled = false;
     setMode(currentMode);
-  }
-}
-
-async function muxAndDownload(btnEl, videoUrl, audioUrl, fileName){
-  const oldText = btnEl.textContent;
-  btnEl.disabled = true;
-  try{
-    btnEl.textContent = "⏳ Đang tải hình & tiếng...";
-    const vProxy = `/api/download?url=${encodeURIComponent(videoUrl)}&name=v.mp4`;
-    const aProxy = `/api/download?url=${encodeURIComponent(audioUrl)}&name=a.m4a`;
-
-    const [vResp, aResp] = await Promise.all([fetch(vProxy), fetch(aProxy)]);
-    if(!vResp.ok || !aResp.ok) throw new Error("Không tải được dữ liệu gốc");
-
-    const vBuf = new Uint8Array(await vResp.arrayBuffer());
-    const aBuf = new Uint8Array(await aResp.arrayBuffer());
-
-    btnEl.textContent = "⚙️ Đang ghép thành MP4...";
-    if(!ffmpegInstance){
-      const { FFmpeg } = FFmpegWASM;
-      const { toBlobURL } = FFmpegUtil;
-      ffmpegInstance = new FFmpeg();
-      const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
-      await ffmpegInstance.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
-      });
-    }
-
-    await ffmpegInstance.writeFile("in_v.mp4", vBuf);
-    await ffmpegInstance.writeFile("in_a.m4a", aBuf);
-    await ffmpegInstance.exec([
-      "-i", "in_v.mp4",
-      "-i", "in_a.m4a",
-      "-c:v", "copy",
-      "-c:a", "aac",
-      "-map", "0:v:0",
-      "-map", "1:a:0",
-      "-shortest",
-      "out_vi.mp4"
-    ]);
-
-    const outData = await ffmpegInstance.readFile("out_vi.mp4");
-    const blob = new Blob([outData.buffer], { type: "video/mp4" });
-    const blobUrl = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    toast("✅ Đã xuất video MP4 Tiếng Việt!");
-  }catch(e){
-    toast("Lỗi ghép video: " + (e.message || "Thử lại sau"));
-  }finally{
-    btnEl.disabled = false;
-    btnEl.textContent = oldText;
   }
 }
 
@@ -1145,7 +1117,7 @@ function renderResults(items){
     const rawUrl = (best.urls && best.urls[0]) || best.api_url || "";
     const qual = best.quality || "HD";
     const codec = (best.codec || "h264").toUpperCase();
-    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_Goc.mp4")}`;
+    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + ".mp4")}`;
 
     let viHtml = "";
     let badgeHtml = `<span class="ep-qual">${qual} · ${codec}</span>`;
@@ -1155,14 +1127,14 @@ function renderResults(items){
       const viUrl = (viBest.urls && viBest.urls[0]) || viBest.api_url || "";
       if(viUrl){
         const proxyVi = `/api/download?url=${encodeURIComponent(viUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_TiengViet.mp4")}`;
-        badgeHtml = `<span class="ep-qual vi">🇻🇳 MP4 Tiếng Việt · ${qual}</span>`;
-        viHtml = `<a class="ep-btn dl-vi" href="${proxyVi}">⬇ Tải MP4 Tiếng Việt</a>`;
+        badgeHtml = `<span class="ep-qual vi">🇻🇳 Có Tiếng Việt · ${qual}</span>`;
+        viHtml = `<a class="ep-btn dl-vi" href="${proxyVi}" download="PineDrama_Tap_${epNum}_TiengViet.mp4">⬇ Tải MP4 Việt</a>`;
       }
     } else if(item.vi_audio && item.vi_audio.length > 0){
       const audUrl = item.vi_audio[0];
-      const outName = `PineDrama_Tap_${epNum}_TiengViet.mp4`;
-      badgeHtml = `<span class="ep-qual vi">🇻🇳 Ghép MP4 Tiếng Việt · ${qual}</span>`;
-      viHtml = `<button type="button" class="ep-btn dl-vi" onclick="muxAndDownload(this, '${rawUrl}', '${audUrl}', '${outName}')">⬇ Tải MP4 Tiếng Việt</button>`;
+      const proxyAud = `/api/download?url=${encodeURIComponent(audUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_GiongViet.m4a")}`;
+      badgeHtml = `<span class="ep-qual vi">🇻🇳 Kèm Audio Việt · ${qual}</span>`;
+      viHtml = `<a class="ep-btn dl-vi" href="${proxyAud}" download="PineDrama_Tap_${epNum}_GiongViet.m4a">⬇ Giọng Việt (M4A)</a>`;
     }
 
     card.innerHTML = `
@@ -1173,8 +1145,8 @@ function renderResults(items){
       <div class="ep-meta">ID: ${item.video_id || "N/A"}</div>
       <div class="ep-btns">
         <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${rawUrl}')">▶ Xem</button>
+        <a class="ep-btn dl" href="${proxyOrig}" download="PineDrama_Tap_${epNum}.mp4">⬇ Tải Video MP4</a>
         ${viHtml}
-        <a class="ep-btn dl" href="${proxyOrig}">⬇ Tải Giọng Gốc</a>
       </div>
     `;
     grid.appendChild(card);
@@ -1195,7 +1167,8 @@ function openPlayer(title, url){
 function closePlayer(){
   const v = $("videoPlayer");
   v.pause();
-  v.src = "";
+  v.removeAttribute("src");
+  v.load();
   $("playerModal").classList.remove("open");
 }
 
@@ -1210,16 +1183,12 @@ function copyAllLinks(){
     }
   });
   if(!links.length){ toast("Không có link hợp lệ"); return; }
-  navigator.clipboard.writeText(links.join("\\n")).then(() => {
-    toast("Đã copy " + links.length + " link MP4!");
-  });
+  copyTextSafe(links.join("\\n"), "Đã copy " + links.length + " link MP4!");
 }
 
 function copyRawJson(){
   if(!lastData.length){ toast("Chưa có dữ liệu!"); return; }
-  navigator.clipboard.writeText(JSON.stringify(lastData, null, 2)).then(() => {
-    toast("Đã copy dữ liệu JSON!");
-  });
+  copyTextSafe(JSON.stringify(lastData, null, 2), "Đã copy dữ liệu JSON!");
 }
 </script>
 </body>
@@ -1292,11 +1261,15 @@ class handler(BaseHTTPRequestHandler):
                     },
                 )
                 with urllib.request.urlopen(req, timeout=25) as resp:
-                    ctype = resp.headers.get("Content-Type") or "video/mp4"
+                    ctype = "application/octet-stream" if fname.endswith(".m4a") else "video/mp4"
                     clen = resp.headers.get("Content-Length")
                     self.send_response(200)
                     self.send_header("Content-Type", ctype)
-                    self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
+                    self.send_header(
+                        "Content-Disposition",
+                        f"attachment; filename=\"{fname}\"; filename*=UTF-8''{urllib.parse.quote(fname)}",
+                    )
+                    self.send_header("X-Content-Type-Options", "nosniff")
                     self.send_header("Access-Control-Allow-Origin", "*")
                     if clen:
                         self.send_header("Content-Length", clen)
