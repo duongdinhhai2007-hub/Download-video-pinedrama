@@ -95,7 +95,6 @@ def find_video_id(text, allow_json_scan=False):
     m = BARE_ID_RE.match(text)
     if m:
         return m.group(1)
-    # Ưu tiên tham số query (share_item_id, item_id, video_id) trước đường dẫn chung để không bị lấy nhầm Tập 1
     m = VIDEO_QUERY_RE.search(text)
     if m:
         return m.group(1)
@@ -353,7 +352,6 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
 
     cid = str(vitem.get("collection_id") or "")
     out["collection_id"] = cid
-    # Tìm số tập thực tế từ metadata nếu chưa truyền vào
     if episode_num is None:
         ep_seq = vitem.get("episode_seq") or vitem.get("seq_id") or vitem.get("episode_num")
         if ep_seq:
@@ -413,7 +411,6 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
                 else:
                     orig_variants.append(v)
 
-        # Luôn ưu tiên độ phân giải cao nhất (1080p) lên đầu tiên
         orig_variants.sort(key=lambda x: (x.get("_q") or 0, x.get("bitrate") or 0, x.get("_h264") or 0), reverse=True)
         vi_variants.sort(key=lambda x: (x.get("_q") or 0, x.get("bitrate") or 0, x.get("_h264") or 0), reverse=True)
 
@@ -463,7 +460,6 @@ def fetch_video_one(url_or_id):
     if not vlist:
         return [{"variants": [], "error": "Không lấy được dữ liệu video (thử lại sau vài giây)", "success": False}]
     item = _parse_video_item(vlist[0], only_best=False)
-    # Tìm đúng số thứ tự tập của video này trong bộ phim
     cid = item.get("collection_id")
     if cid:
         panel = api_episode_panel(cid)
@@ -554,7 +550,7 @@ INDEX_HTML = r"""<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0b12">
-<title>PineDrama PRO v6.2 · Dương Đình Hải</title>
+<title>PineDrama PRO v6.2.1 · Dương Đình Hải</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232e1065'/%3E%3Cstop offset='100%25' stop-color='%231e1b4b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z' fill='%2338bdf8'/%3E%3Cellipse cx='32' cy='36' rx='17' ry='15' fill='%23fb7185'/%3E%3Cpath d='M16 33c3-6 29-6 32 0 1 8-4 16-16 16S15 41 16 33z' fill='%23f43f5e'/%3E%3Crect x='21' y='34' width='17' height='11' rx='5.5' fill='%23ffe4e6'/%3E%3Crect x='25' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3Crect x='31' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
 <style>
@@ -756,7 +752,7 @@ a{color:inherit;text-decoration:none}
 .ep-meta{font-size:11.5px;color:var(--muted)}
 .ep-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ep-btn{
-  text-align:center;padding:11px 8px;border-radius:11px;font-size:12.5px;font-weight:800;cursor:pointer;border:0;
+  text-align:center;padding:11px 8px;border-radius:11px;font-size:13px;font-weight:800;cursor:pointer;border:0;
   display:inline-flex;align-items:center;justify-content:center;gap:5px;line-height:1.25;
 }
 .ep-btn.play{grid-column:1 / -1;background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.1)}
@@ -891,7 +887,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
 
     <section class="hero">
       <h1>Tải Video PineDrama Không Logo</h1>
-      <p>Hỗ trợ tải 2 phiên bản: <strong>Video Lồng Tiếng Việt (1080p)</strong> và <strong>Video Giọng Gốc (1080p)</strong> đúng chính xác tập phim bạn chia sẻ.</p>
+      <p>Bóc tách và xuất file MP4 chuẩn 1080p Full HD trực tiếp về điện thoại và máy tính.</p>
     </section>
 
     <section class="input-box">
@@ -912,7 +908,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
         <div class="stat-lbl">Tổng lượt truy cập</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" id="stToday">3.286</div>
+        <div class="stat-num" id="stToday">3.288</div>
         <div class="stat-lbl">Lượt tải hôm nay (GMT+7)</div>
       </div>
     </section>
@@ -940,7 +936,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
         <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
       </svg>
     </div>
-    <div class="pc-badge">● BẢN PHÁT HÀNH: v6.2.0 (1080P DUAL-TRACK)</div>
+    <div class="pc-badge">● BẢN PHÁT HÀNH: v6.2.1 (1080P PRO)</div>
     <h2 style="margin:4px 0 10px;font-size:24px;font-weight:800">Pine Drama PRO</h2>
     <p style="max-width:560px;margin:0 auto 18px;color:var(--muted);font-size:13.5px;line-height:1.6">
       Bộ phần mềm chuyên dụng cho Windows, macOS &amp; Termux: Tự động quét và tải hàng loạt trọn bộ 50 - 150 tập phim ngắn không logo chuẩn 1080p từ PineDrama.
@@ -951,7 +947,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
   <footer class="footer">
     <div>PineDrama Downloader PRO • Bảo mật &amp; Tốc độ cao © 2026</div>
     <div>Liên hệ hỗ trợ Admin: <a href="javascript:void(0)" onclick="openAdmin()">Dương Đình Hải - 0862732490</a></div>
-    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v6.2.0</div>
+    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v6.2.1</div>
   </footer>
 </main>
 
@@ -1097,7 +1093,7 @@ async function pasteClip(){
 function updateClock(){
   const now = new Date();
   const s = now.toLocaleString("vi-VN", {timeZone:"Asia/Ho_Chi_Minh"});
-  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v6.2.0";
+  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v6.2.1";
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1127,7 +1123,7 @@ async function fetchVideo(){
     }
     lastData = data;
     renderResults(data);
-    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3286;
+    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3288;
     $("stToday").textContent = (curToday + 1).toLocaleString("vi-VN");
     toast("Đã lấy xong " + data.length + " tập phim!");
   }catch(err){
@@ -1294,7 +1290,7 @@ function renderResults(items){
     const rawUrl = (best.urls && best.urls[0]) || best.api_url || "";
     const qual = best.quality || "1080p";
     const codec = (best.codec || "h264").toUpperCase();
-    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_Goc_" + qual + ".mp4")}`;
+    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_" + qual + ".mp4")}`;
 
     let viBtnHtml = "";
     let badgeHtml = `<span class="ep-qual">${qual} · ${codec}</span>`;
@@ -1312,9 +1308,9 @@ function renderResults(items){
       const outName = `PineDrama_Tap_${epNum}_TiengViet_${qual}.mp4`;
       badgeHtml = `<span class="ep-qual vi">🇻🇳 Tiếng Việt · ${qual}</span>`;
       viBtnHtml = `<button type="button" class="ep-btn dl-vi" onclick="muxPureJsAndDownload(this, '${rawUrl}', '${audUrl}', '${outName}')">⬇ Tải Video Tiếng Việt</button>`;
-    } else {
-      viBtnHtml = `<button type="button" class="ep-btn dl-vi" style="opacity:.5" onclick="toast('Tập này chưa có bản lồng tiếng Việt trên hệ thống')">🚫 Chưa có Tiếng Việt</button>`;
     }
+
+    const fullSpan = viBtnHtml ? "" : 'style="grid-column:1 / -1"';
 
     card.innerHTML = `
       <div class="ep-top">
@@ -1325,7 +1321,7 @@ function renderResults(items){
       <div class="ep-btns">
         <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${rawUrl}')">▶ Xem trước video</button>
         ${viBtnHtml}
-        <a class="ep-btn dl" href="${proxyOrig}" download="PineDrama_Tap_${epNum}_Goc_${qual}.mp4">⬇ Tải Video Gốc</a>
+        <a class="ep-btn dl" ${fullSpan} href="${proxyOrig}" download="PineDrama_Tap_${epNum}_${qual}.mp4">⬇ Tải Video</a>
       </div>
     `;
     grid.appendChild(card);
