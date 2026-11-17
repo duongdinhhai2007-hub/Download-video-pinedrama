@@ -29,7 +29,8 @@ USER_AGENT = (
 )
 
 VIDEO_PATH_RE = re.compile(r"/video/(\d{15,22})")
-VIDEO_QUERY_RE = re.compile(r"(?:aweme_id|item_id|video_id)=(\d{15,22})")
+VIDEO_QUERY_RE = re.compile(r"(?:share_item_id|item_id|aweme_id|video_id)=(\d{15,22})")
+JSON_ID_RE = re.compile(r'"(?:itemId|aweme_id|video_id|share_item_id)"\s*:\s*"?(\d{15,22})"?')
 BARE_ID_RE = re.compile(r"^(\d{15,22})$")
 URL_EXTRACT_RE = re.compile(r"https?://[^\s\"'<>]+")
 QUALITY_RE = re.compile(r"_(1[0-9]{3}|[1-9][0-9]{2})p_")
@@ -51,7 +52,7 @@ def common_query(lang="vi", locale="vi-VN", region="VN", did=None, iid=None):
         f"&device_id={use_did}&iid={use_iid}"
         f"&language={lang}&app_language={lang}&locale={locale}"
         f"&region={region}&sys_region={region}&carrier_region={region}&current_region={region}&op_region={region}&residence={region}"
-        f"&is_play_h265=1&bytevc1=1&enable_dubbing=1&dubbing_language=vie"
+        f"&is_play_h265=1&bytevc1=1&enable_dubbing=1&dubbing_language=vie&need_dubbing=1"
     )
 
 
@@ -87,25 +88,30 @@ def extract_clean_input(raw_text):
     return raw_text
 
 
-def find_video_id(text):
+def find_video_id(text, allow_json_scan=False):
     if not text:
         return None
     text = text.strip()
     m = BARE_ID_RE.match(text)
     if m:
         return m.group(1)
-    m = VIDEO_PATH_RE.search(text)
-    if m:
-        return m.group(1)
+    # Ưu tiên tham số query (share_item_id, item_id, video_id) trước đường dẫn chung để không bị lấy nhầm Tập 1
     m = VIDEO_QUERY_RE.search(text)
     if m:
         return m.group(1)
+    m = VIDEO_PATH_RE.search(text)
+    if m:
+        return m.group(1)
+    if allow_json_scan:
+        m = JSON_ID_RE.search(text)
+        if m:
+            return m.group(1)
     return None
 
 
 def resolve_share_url(raw_input):
     url = extract_clean_input(raw_input)
-    vid = find_video_id(url)
+    vid = find_video_id(url, allow_json_scan=False)
     if vid:
         return url, vid
 
@@ -115,28 +121,29 @@ def resolve_share_url(raw_input):
 
     opener = urllib.request.build_opener(NoRedirect)
     cur = url
-    for _ in range(8):
+    for _ in range(10):
         req = urllib.request.Request(
             cur,
             headers={
-                "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36"
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
             },
         )
         try:
             resp = opener.open(req, timeout=10)
             final_url = resp.geturl()
-            body = resp.read(32768).decode("utf-8", errors="ignore")
+            body = resp.read(65536).decode("utf-8", errors="ignore")
         except urllib.error.HTTPError as e:
             loc = e.headers.get("Location") or e.headers.get("location")
             if loc:
                 cur = urllib.parse.urljoin(cur, loc)
-                vid = find_video_id(cur)
+                vid = find_video_id(cur, allow_json_scan=False)
                 if vid:
                     return cur, vid
                 continue
-            body = e.read(32768).decode("utf-8", errors="ignore") if e.fp else ""
+            body = e.read(65536).decode("utf-8", errors="ignore") if e.fp else ""
             final_url = cur
-        vid = find_video_id(final_url) or find_video_id(body)
+
+        vid = find_video_id(final_url, allow_json_scan=False) or find_video_id(body, allow_json_scan=True)
         if vid:
             return final_url, vid
         break
@@ -148,7 +155,8 @@ def api_video_by_ids(video_ids, seed=0):
     payload = json.dumps({
         "video_ids": ids_int,
         "dubbing_language": "vie",
-        "enable_dubbing": True
+        "enable_dubbing": True,
+        "need_dubbing": True
     }).encode("utf-8")
 
     for attempt in range(8):
@@ -209,20 +217,21 @@ def api_episode_panel(collection_id):
     return None
 
 
-def _quality_rank(url_key, height):
+def _quality_rank(url_key, height, width=0):
     if url_key:
         m = QUALITY_RE.search(url_key)
         if m:
             return int(m.group(1))
-    if height >= 1600:
+    short_side = min(width, height) if (width > 0 and height > 0) else max(width, height)
+    if short_side >= 1000 or height >= 1600:
         return 1080
-    if height >= 1200:
+    if short_side >= 700 or height >= 1200:
         return 720
-    if height >= 900:
+    if short_side >= 500 or height >= 900:
         return 540
-    if height >= 500:
+    if short_side >= 350 or height >= 500:
         return 360
-    return height if height > 0 else 0
+    return short_side if short_side > 0 else 0
 
 
 def _quality_name(rank):
@@ -236,7 +245,7 @@ def _quality_name(rank):
         return "480p"
     if rank >= 360:
         return "360p"
-    return f"{rank}p" if rank > 0 else "HD"
+    return f"{rank}p" if rank > 0 else "1080p"
 
 
 def _expires_at(url):
@@ -258,6 +267,7 @@ def _addr_variant(play_addr, source, is_bytevc1, bitrate, lang_tag="orig"):
         return None
     url_key = str(play_addr.get("url_key") or "")
     height = int(play_addr.get("height") or 0)
+    width = int(play_addr.get("width") or 0)
     urls = []
     api_url = None
     for u in url_list:
@@ -270,7 +280,7 @@ def _addr_variant(play_addr, source, is_bytevc1, bitrate, lang_tag="orig"):
             urls.append(u)
     if not urls and not api_url:
         return None
-    rank = _quality_rank(url_key, height)
+    rank = _quality_rank(url_key, height, width)
     codec = "h265" if (is_bytevc1 or "bytevc1" in url_key) else "h264"
     sample_url = urls[0] if urls else api_url
     is_vi = lang_tag == "vi" or "vie" in url_key.lower() or "dub" in url_key.lower()
@@ -284,51 +294,52 @@ def _addr_variant(play_addr, source, is_bytevc1, bitrate, lang_tag="orig"):
         "bitrate": bitrate if bitrate > 0 else None,
         "expires_at": _expires_at(sample_url),
         "_q": rank,
+        "_h264": 1 if codec == "h264" else 0,
     }
 
 
-def _extract_vi_dub_urls(aweme, vobj):
-    vi_urls = []
-    vi_audio_urls = []
+def _deep_find_vi_streams(node, vi_video_urls, vi_audio_urls, in_vi_ctx=False):
+    if isinstance(node, dict):
+        lang_hint = " ".join(
+            str(node.get(k) or "")
+            for k in ("language", "lang", "language_code", "dub_language", "audio_meta", "url_key", "gear_name")
+        ).lower()
+        cur_vi = in_vi_ctx or ("vie" in lang_hint) or ("vi-vn" in lang_hint) or ("_vi_" in lang_hint)
 
-    def _scan_dub_list(dub_list):
-        if not isinstance(dub_list, list):
-            return
-        for d in dub_list:
-            if not isinstance(d, dict):
-                continue
-            lang = str(d.get("language") or d.get("lang") or d.get("language_code") or "").lower()
-            if "vi" in lang:
-                for k in ("play_addr", "video_play_addr", "main_play_addr"):
-                    pa = d.get(k)
-                    if isinstance(pa, dict) and pa.get("url_list"):
-                        vi_urls.extend(pa["url_list"])
-                for k in ("audio_play_addr", "play_audio_addr", "audio_addr"):
-                    aa = d.get(k)
-                    if isinstance(aa, dict) and aa.get("url_list"):
-                        vi_audio_urls.extend(aa["url_list"])
-                if d.get("url"):
-                    vi_audio_urls.append(d["url"])
+        if cur_vi:
+            for k in ("play_addr", "video_play_addr", "main_play_addr", "download_addr"):
+                pa = node.get(k)
+                if isinstance(pa, dict) and isinstance(pa.get("url_list"), list):
+                    for u in pa["url_list"]:
+                        if isinstance(u, str) and u.startswith("http") and u not in vi_video_urls:
+                            vi_video_urls.append(u)
 
-    _scan_dub_list(vobj.get("dub_infos"))
-    _scan_dub_list(aweme.get("dub_infos"))
+            for k in ("audio_play_addr", "play_audio_addr", "audio_addr", "play_url"):
+                aa = node.get(k)
+                if isinstance(aa, dict) and isinstance(aa.get("url_list"), list):
+                    for u in aa["url_list"]:
+                        if isinstance(u, str) and u.startswith("http") and u not in vi_audio_urls:
+                            vi_audio_urls.append(u)
 
-    cla = aweme.get("cla_info") or vobj.get("cla_info") or {}
-    if isinstance(cla, dict):
-        _scan_dub_list(cla.get("dub_infos") or cla.get("caption_infos"))
+            if isinstance(node.get("url_list"), list):
+                is_audio = "audio" in lang_hint or "m4a" in lang_hint or "aac" in lang_hint
+                target_list = vi_audio_urls if is_audio else vi_video_urls
+                for u in node["url_list"]:
+                    if isinstance(u, str) and u.startswith("http") and u not in target_list:
+                        target_list.append(u)
 
-    br_audio = vobj.get("bit_rate_audio") or []
-    if isinstance(br_audio, list):
-        for ba in br_audio:
-            if not isinstance(ba, dict):
-                continue
-            meta = str(ba.get("audio_meta") or ba.get("language") or "").lower()
-            if "vi" in meta or "dub" in meta:
-                pa = ba.get("play_addr") or {}
-                if isinstance(pa, dict) and pa.get("url_list"):
-                    vi_audio_urls.extend(pa["url_list"])
+            if isinstance(node.get("url"), str) and node["url"].startswith("http"):
+                if node["url"] not in vi_audio_urls:
+                    vi_audio_urls.append(node["url"])
 
-    return vi_urls, vi_audio_urls
+        for k, v in node.items():
+            kl = str(k).lower()
+            next_vi = cur_vi or ("dub" in kl) or ("vie" in kl)
+            _deep_find_vi_streams(v, vi_video_urls, vi_audio_urls, next_vi)
+
+    elif isinstance(node, list):
+        for item in node:
+            _deep_find_vi_streams(item, vi_video_urls, vi_audio_urls, in_vi_ctx)
 
 
 def _parse_video_item(vitem, only_best=False, episode_num=None):
@@ -342,6 +353,15 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
 
     cid = str(vitem.get("collection_id") or "")
     out["collection_id"] = cid
+    # Tìm số tập thực tế từ metadata nếu chưa truyền vào
+    if episode_num is None:
+        ep_seq = vitem.get("episode_seq") or vitem.get("seq_id") or vitem.get("episode_num")
+        if ep_seq:
+            try:
+                out["episode"] = int(ep_seq)
+            except Exception:
+                pass
+
     video_wrapper = vitem.get("video") or {}
     aweme = video_wrapper.get("aweme") if isinstance(video_wrapper, dict) else None
     if not isinstance(aweme, dict):
@@ -354,8 +374,25 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
     out["desc"] = str(aweme.get("desc") or "")
     vobj = aweme.get("video") or {}
 
-    vi_direct_urls, vi_audio_urls = _extract_vi_dub_urls(aweme, vobj)
-    out["vi_audio"] = vi_audio_urls
+    vi_video_urls = []
+    vi_audio_urls = []
+    _deep_find_vi_streams(vitem, vi_video_urls, vi_audio_urls, False)
+
+    clean_vi_videos = []
+    clean_vi_audios = []
+    for u in vi_video_urls:
+        ul = u.lower()
+        if "audio" in ul or ".m4a" in ul or "mime_type=audio" in ul:
+            if u not in clean_vi_audios:
+                clean_vi_audios.append(u)
+        else:
+            if u not in clean_vi_videos:
+                clean_vi_videos.append(u)
+    for u in vi_audio_urls:
+        if u not in clean_vi_audios:
+            clean_vi_audios.append(u)
+
+    out["vi_audio"] = clean_vi_audios
 
     orig_variants = []
     vi_variants = []
@@ -368,26 +405,28 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
             pa = br.get("play_addr")
             is_bvc1 = int(br.get("is_bytevc1") or 0) == 1
             bval = int(br.get("bit_rate") or 0)
-            v = _addr_variant(pa, "play", is_bvc1, bval)
+            dub_lang = str(br.get("dub_language") or br.get("language") or "").lower()
+            v = _addr_variant(pa, "play", is_bvc1, bval, "vi" if "vi" in dub_lang else "orig")
             if v:
                 if v.get("lang") == "vi":
                     vi_variants.append(v)
                 else:
                     orig_variants.append(v)
 
-        orig_variants.sort(key=lambda x: (x.get("_q") or 0, x.get("bitrate") or 0), reverse=True)
-        vi_variants.sort(key=lambda x: (x.get("_q") or 0, x.get("bitrate") or 0), reverse=True)
+        # Luôn ưu tiên độ phân giải cao nhất (1080p) lên đầu tiên
+        orig_variants.sort(key=lambda x: (x.get("_q") or 0, x.get("bitrate") or 0, x.get("_h264") or 0), reverse=True)
+        vi_variants.sort(key=lambda x: (x.get("_q") or 0, x.get("bitrate") or 0, x.get("_h264") or 0), reverse=True)
 
-        if not vi_variants and vi_direct_urls:
+        if not vi_variants and clean_vi_videos:
             vi_variants.append({
                 "source": "dub_vi",
                 "lang": "vi",
-                "urls": vi_direct_urls,
+                "urls": clean_vi_videos,
                 "api_url": None,
                 "quality": orig_variants[0]["quality"] if orig_variants else "1080p",
                 "codec": orig_variants[0]["codec"] if orig_variants else "h264",
                 "bitrate": None,
-                "expires_at": _expires_at(vi_direct_urls[0]),
+                "expires_at": _expires_at(clean_vi_videos[0]),
             })
 
         if only_best:
@@ -396,17 +435,19 @@ def _parse_video_item(vitem, only_best=False, episode_num=None):
 
         for v in orig_variants + vi_variants:
             v.pop("_q", None)
+            v.pop("_h264", None)
 
         if not orig_variants and not vi_variants:
             pa = vobj.get("play_addr")
             v = _addr_variant(pa, "play", False, 0)
             if v:
                 v.pop("_q", None)
+                v.pop("_h264", None)
                 orig_variants.append(v)
 
     out["variants"] = orig_variants if orig_variants else vi_variants
     out["vi_variants"] = vi_variants
-    out["has_vi"] = len(vi_variants) > 0 or len(vi_audio_urls) > 0
+    out["has_vi"] = len(vi_variants) > 0 or len(clean_vi_audios) > 0
     out["success"] = len(out["variants"]) > 0
     if not out["success"]:
         out["error"] = "no play url"
@@ -421,7 +462,17 @@ def fetch_video_one(url_or_id):
     vlist = (data or {}).get("video_list") or []
     if not vlist:
         return [{"variants": [], "error": "Không lấy được dữ liệu video (thử lại sau vài giây)", "success": False}]
-    return [_parse_video_item(vlist[0], only_best=False)]
+    item = _parse_video_item(vlist[0], only_best=False)
+    # Tìm đúng số thứ tự tập của video này trong bộ phim
+    cid = item.get("collection_id")
+    if cid:
+        panel = api_episode_panel(cid)
+        ep_list = (panel or {}).get("episode_list") or []
+        for idx, ep in enumerate(ep_list):
+            if str(ep.get("video_id") or "") == str(vid):
+                item["episode"] = int(ep.get("num") or ep.get("seq_id") or (idx + 1))
+                break
+    return [item]
 
 
 def fetch_full_series(url_or_id, max_workers=10):
@@ -503,7 +554,7 @@ INDEX_HTML = r"""<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0b12">
-<title>PineDrama PRO · Dương Đình Hải</title>
+<title>PineDrama PRO v6.2 · Dương Đình Hải</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232e1065'/%3E%3Cstop offset='100%25' stop-color='%231e1b4b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M32 16c-3-5-10-6-11-1 3 1 7 3 9 5 2-2 6-4 9-5-1-5-8-4-7 1z' fill='%2338bdf8'/%3E%3Cellipse cx='32' cy='36' rx='17' ry='15' fill='%23fb7185'/%3E%3Cpath d='M16 33c3-6 29-6 32 0 1 8-4 16-16 16S15 41 16 33z' fill='%23f43f5e'/%3E%3Crect x='21' y='34' width='17' height='11' rx='5.5' fill='%23ffe4e6'/%3E%3Crect x='25' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3Crect x='31' y='36.5' width='2.6' height='5.5' rx='1.3' fill='%231e1b4b'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
 <style>
@@ -518,9 +569,7 @@ INDEX_HTML = r"""<!doctype html>
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{
-  margin:0;
-  padding:0;
-  min-height:100vh;
+  margin:0;padding:0;min-height:100vh;
   background:#0b0b12;
   background-image:radial-gradient(circle at 50% 0%, #23173d 0%, #0b0b12 62%);
   color:var(--text);
@@ -531,7 +580,7 @@ a{color:inherit;text-decoration:none}
 
 .nav{
   position:sticky;top:0;z-index:40;
-  background:rgba(11,11,18,.92);
+  background:rgba(11,11,18,.94);
   -webkit-backdrop-filter:blur(14px);
   backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);
@@ -574,7 +623,7 @@ a{color:inherit;text-decoration:none}
 }
 .btn-admin:hover{background:rgba(59,130,246,.24);color:#93c5fd}
 
-.wrap{max-width:840px;margin:0 auto;padding:18px 14px calc(92px + env(safe-area-inset-bottom))}
+.wrap{max-width:840px;margin:0 auto;padding:20px 14px calc(92px + env(safe-area-inset-bottom))}
 
 .panel{
   background:rgba(19,19,31,.9);
@@ -590,7 +639,7 @@ a{color:inherit;text-decoration:none}
 .panel-lbl{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .pill-tag{
   font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;
-  background:rgba(236,72,153,.14);color:#f472b6;border:1px solid rgba(236,72,153,.3);
+  background:rgba(16,185,129,.14);color:#34d399;border:1px solid rgba(16,185,129,.3);
 }
 .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .mode-btn{
@@ -605,9 +654,9 @@ a{color:inherit;text-decoration:none}
   box-shadow:0 0 0 1px rgba(168,85,247,.35);
 }
 
-.hero{text-align:center;margin:22px 0 18px;padding:0 4px}
+.hero{text-align:center;margin:20px 0 16px;padding:0 4px}
 .hero h1{
-  margin:0;font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.25;
+  margin:0;font-size:27px;font-weight:800;letter-spacing:-.025em;line-height:1.25;
   color:#ffffff;
 }
 .hero p{
@@ -691,28 +740,28 @@ a{color:inherit;text-decoration:none}
 }
 .btn-mini:hover{background:#29293d}
 
-.ep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.ep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
 .ep-card{
-  background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;
+  background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;
   display:flex;flex-direction:column;justify-content:space-between;gap:10px;
 }
 .ep-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.ep-name{font-weight:800;font-size:14px;color:#fff}
+.ep-name{font-weight:800;font-size:15px;color:#fff}
 .ep-qual{
-  font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;
+  font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;
   background:rgba(16,185,129,.16);color:#34d399;border:1px solid rgba(16,185,129,.3);
 }
 .ep-qual.vi{background:rgba(245,158,11,.16);color:#fbbf24;border-color:rgba(245,158,11,.35)}
 .ep-qual.err{background:rgba(239,68,68,.16);color:#f87171;border-color:rgba(239,68,68,.3)}
 .ep-meta{font-size:11.5px;color:var(--muted)}
-.ep-btns{display:flex;gap:7px;flex-wrap:wrap}
+.ep-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ep-btn{
-  flex:1;min-width:92px;text-align:center;padding:10px 8px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;border:0;
-  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  text-align:center;padding:11px 8px;border-radius:11px;font-size:12.5px;font-weight:800;cursor:pointer;border:0;
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;line-height:1.25;
 }
-.ep-btn.play{background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
-.ep-btn.dl{background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff}
-.ep-btn.dl-vi{background:linear-gradient(90deg,#f59e0b,#ea580c);color:#fff}
+.ep-btn.play{grid-column:1 / -1;background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.1)}
+.ep-btn.dl-vi{background:linear-gradient(90deg,#f59e0b,#ea580c);color:#fff;box-shadow:0 4px 14px rgba(234,88,12,.3)}
+.ep-btn.dl{background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff;box-shadow:0 4px 14px rgba(236,72,153,.3)}
 .ep-btn:disabled{opacity:.6;cursor:wait}
 
 .modal{
@@ -799,7 +848,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
       </div>
       <div>
         <div class="brand-title">Pine<span>Drama</span></div>
-        <div class="badge-pro">PRO · ALL DEVICES</div>
+        <div class="badge-pro">PRO · 1080P FULL HD</div>
       </div>
     </a>
     <nav class="nav-links">
@@ -818,8 +867,8 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
   <div id="webSection">
     <section class="panel">
       <div class="panel-head">
-        <span class="panel-lbl">Nền tảng &amp; Chế độ hỗ trợ tải</span>
-        <span class="pill-tag">Tương thích Android · iOS · Windows · macOS</span>
+        <span class="panel-lbl">Chế độ tải xuống</span>
+        <span class="pill-tag">Chuẩn 1080p Full HD · Android · iOS · Windows · macOS</span>
       </div>
       <div class="mode-grid">
         <button type="button" class="mode-btn active" id="m-one" onclick="setMode('video')">
@@ -831,18 +880,18 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
             <rect x="24" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
             <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
           </svg>
-          <span>PineDrama (Tải 1 Tập 1080p)</span>
+          <span>Đúng Tập Của Link (1080p)</span>
         </button>
         <button type="button" class="mode-btn" id="m-full" onclick="setMode('full')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" style="flex-shrink:0"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          <span>PineDrama Full Bộ (Tất Cả Tập)</span>
+          <span>Full Bộ (Tất Cả Tập)</span>
         </button>
       </div>
     </section>
 
     <section class="hero">
       <h1>Tải Video PineDrama Không Logo</h1>
-      <p>Tự động ghép sẵn giọng Lồng Tiếng Việt vào video MP4 hoàn chỉnh trên cả iPhone, Android, Windows và macOS.</p>
+      <p>Hỗ trợ tải 2 phiên bản: <strong>Video Lồng Tiếng Việt (1080p)</strong> và <strong>Video Giọng Gốc (1080p)</strong> đúng chính xác tập phim bạn chia sẻ.</p>
     </section>
 
     <section class="input-box">
@@ -850,7 +899,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
         <span class="url-ico">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
         </span>
-        <input type="url" id="urlInput" placeholder="Dán link video PineDrama (shortdrama.tiktok.com/t/...)..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <input type="url" id="urlInput" placeholder="Dán link video PineDrama (vt.tiktok.com / shortdrama.tiktok.com)..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         <button type="button" class="btn-clear" id="btnClear" onclick="clearInput()">✕</button>
         <button type="button" class="btn-paste" onclick="pasteClip()">Dán</button>
       </div>
@@ -863,7 +912,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
         <div class="stat-lbl">Tổng lượt truy cập</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" id="stToday">3.285</div>
+        <div class="stat-num" id="stToday">3.286</div>
         <div class="stat-lbl">Lượt tải hôm nay (GMT+7)</div>
       </div>
     </section>
@@ -891,10 +940,10 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
         <rect x="30.5" y="36.5" width="2.8" height="5.5" rx="1.4" fill="#1e1b4b"/>
       </svg>
     </div>
-    <div class="pc-badge">● BẢN PHÁT HÀNH: v5.8.0 (MP4BOX PURE JS MUXER)</div>
+    <div class="pc-badge">● BẢN PHÁT HÀNH: v6.2.0 (1080P DUAL-TRACK)</div>
     <h2 style="margin:4px 0 10px;font-size:24px;font-weight:800">Pine Drama PRO</h2>
     <p style="max-width:560px;margin:0 auto 18px;color:var(--muted);font-size:13.5px;line-height:1.6">
-      Bộ phần mềm chuyên dụng cho Windows, macOS &amp; Termux: Tự động quét và tải hàng loạt trọn bộ 50 - 150 tập phim ngắn không logo từ PineDrama.
+      Bộ phần mềm chuyên dụng cho Windows, macOS &amp; Termux: Tự động quét và tải hàng loạt trọn bộ 50 - 150 tập phim ngắn không logo chuẩn 1080p từ PineDrama.
     </p>
     <button type="button" class="btn-submit" style="max-width:340px" onclick="openAdmin()">Liên hệ Admin Dương Đình Hải để nhận bản PC</button>
   </section>
@@ -902,7 +951,7 @@ video{width:100%;max-height:68vh;border-radius:12px;background:#000}
   <footer class="footer">
     <div>PineDrama Downloader PRO • Bảo mật &amp; Tốc độ cao © 2026</div>
     <div>Liên hệ hỗ trợ Admin: <a href="javascript:void(0)" onclick="openAdmin()">Dương Đình Hải - 0862732490</a></div>
-    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v5.8.0</div>
+    <div id="clockLine">Múi giờ Việt Nam (GMT+7) • Bản phát hành v6.2.0</div>
   </footer>
 </main>
 
@@ -1048,7 +1097,7 @@ async function pasteClip(){
 function updateClock(){
   const now = new Date();
   const s = now.toLocaleString("vi-VN", {timeZone:"Asia/Ho_Chi_Minh"});
-  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v5.8.0";
+  $("clockLine").textContent = "Múi giờ Việt Nam: " + s + " (GMT+7) • Bản phát hành v6.2.0";
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1062,7 +1111,7 @@ async function fetchVideo(){
   }
   const btn = $("btnGo");
   btn.disabled = true;
-  btn.textContent = currentMode === "video" ? "⏳ Đang bóc tách video..." : "⏳ Đang tải danh sách toàn bộ tập...";
+  btn.textContent = currentMode === "video" ? "⏳ Đang bóc tách tập phim..." : "⏳ Đang tải toàn bộ tập...";
 
   const endpoint = currentMode === "video" ? "/api/video" : "/api/full";
   try{
@@ -1078,9 +1127,9 @@ async function fetchVideo(){
     }
     lastData = data;
     renderResults(data);
-    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3285;
+    const curToday = parseInt($("stToday").textContent.replace(/\./g,"")) || 3286;
     $("stToday").textContent = (curToday + 1).toLocaleString("vi-VN");
-    toast("Bóc tách thành công " + data.length + " video!");
+    toast("Đã lấy xong " + data.length + " tập phim!");
   }catch(err){
     toast("Lỗi kết nối: " + (err.message || "Thử lại sau"));
   }finally{
@@ -1113,27 +1162,27 @@ function parseMp4Demux(arrayBuffer){
     setTimeout(() => {
       if(!infoData) return reject(new Error("Không đọc được luồng MP4"));
       resolve({ file, info: infoData, samplesByTrack });
-    }, 60);
+    }, 80);
   });
 }
 
 async function muxPureJsAndDownload(btnEl, videoUrl, audioUrl, fileName){
-  const oldText = btnEl.textContent;
+  const oldHtml = btnEl.innerHTML;
   btnEl.disabled = true;
   try{
     if(typeof MP4Box === "undefined"){
-      throw new Error("Chưa nạp xong bộ trộn MP4Box");
+      throw new Error("Chưa nạp xong bộ ghép MP4Box");
     }
-    btnEl.textContent = "⏳ Đang tải luồng hình & tiếng...";
+    btnEl.textContent = "⏳ Đang tải hình & tiếng...";
     const vProxy = `/api/download?url=${encodeURIComponent(videoUrl)}&name=v.mp4`;
     const aProxy = `/api/download?url=${encodeURIComponent(audioUrl)}&name=a.m4a`;
 
     const [vResp, aResp] = await Promise.all([fetch(vProxy), fetch(aProxy)]);
-    if(!vResp.ok || !aResp.ok) throw new Error("Lỗi tải luồng dữ liệu từ máy chủ");
+    if(!vResp.ok || !aResp.ok) throw new Error("Lỗi tải luồng dữ liệu");
 
     const [vBuf, aBuf] = await Promise.all([vResp.arrayBuffer(), aResp.arrayBuffer()]);
 
-    btnEl.textContent = "⚙️ Đang ghép giọng Việt...";
+    btnEl.textContent = "⚙️ Đang ghép Tiếng Việt...";
     const [vParsed, aParsed] = await Promise.all([parseMp4Demux(vBuf), parseMp4Demux(aBuf)]);
 
     const vTrack = vParsed.info.videoTracks[0];
@@ -1187,8 +1236,9 @@ async function muxPureJsAndDownload(btnEl, videoUrl, audioUrl, fileName){
       });
     }
 
-    const stream = new DataStream();
-    stream.endianness = DataStream.BIG_ENDIAN;
+    const DS = MP4Box.DataStream || window.DataStream;
+    const stream = new DS();
+    stream.endianness = DS.BIG_ENDIAN;
     outFile.write(stream);
 
     const blob = new Blob([stream.buffer], { type: "video/mp4" });
@@ -1205,12 +1255,12 @@ async function muxPureJsAndDownload(btnEl, videoUrl, audioUrl, fileName){
       URL.revokeObjectURL(blobUrl);
     }, 4000);
 
-    toast("✅ Đã tải về video MP4 có giọng Tiếng Việt!");
+    toast("✅ Đã tải về video MP4 Tiếng Việt 1080p!");
   }catch(e){
     toast("Lỗi ghép video: " + (e.message || "Thử lại sau"));
   }finally{
     btnEl.disabled = false;
-    btnEl.textContent = oldText;
+    btnEl.innerHTML = oldHtml;
   }
 }
 
@@ -1242,26 +1292,28 @@ function renderResults(items){
 
     const best = item.variants[0];
     const rawUrl = (best.urls && best.urls[0]) || best.api_url || "";
-    const qual = best.quality || "HD";
+    const qual = best.quality || "1080p";
     const codec = (best.codec || "h264").toUpperCase();
-    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_Goc.mp4")}`;
+    const proxyOrig = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_Goc_" + qual + ".mp4")}`;
 
-    let viHtml = "";
+    let viBtnHtml = "";
     let badgeHtml = `<span class="ep-qual">${qual} · ${codec}</span>`;
 
     if(item.vi_variants && item.vi_variants.length > 0){
       const viBest = item.vi_variants[0];
       const viUrl = (viBest.urls && viBest.urls[0]) || viBest.api_url || "";
       if(viUrl){
-        const proxyVi = `/api/download?url=${encodeURIComponent(viUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_TiengViet.mp4")}`;
-        badgeHtml = `<span class="ep-qual vi">🇻🇳 MP4 Tiếng Việt · ${qual}</span>`;
-        viHtml = `<a class="ep-btn dl-vi" href="${proxyVi}" download="PineDrama_Tap_${epNum}_TiengViet.mp4">⬇ Tải MP4 Tiếng Việt</a>`;
+        const proxyVi = `/api/download?url=${encodeURIComponent(viUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + "_TiengViet_" + qual + ".mp4")}`;
+        badgeHtml = `<span class="ep-qual vi">🇻🇳 Tiếng Việt · ${qual}</span>`;
+        viBtnHtml = `<a class="ep-btn dl-vi" href="${proxyVi}" download="PineDrama_Tap_${epNum}_TiengViet_${qual}.mp4">⬇ Tải Video Tiếng Việt</a>`;
       }
     } else if(item.vi_audio && item.vi_audio.length > 0){
       const audUrl = item.vi_audio[0];
-      const outName = `PineDrama_Tap_${epNum}_TiengViet.mp4`;
-      badgeHtml = `<span class="ep-qual vi">🇻🇳 MP4 Tiếng Việt · ${qual}</span>`;
-      viHtml = `<button type="button" class="ep-btn dl-vi" onclick="muxPureJsAndDownload(this, '${rawUrl}', '${audUrl}', '${outName}')">⬇ Tải MP4 Tiếng Việt</button>`;
+      const outName = `PineDrama_Tap_${epNum}_TiengViet_${qual}.mp4`;
+      badgeHtml = `<span class="ep-qual vi">🇻🇳 Tiếng Việt · ${qual}</span>`;
+      viBtnHtml = `<button type="button" class="ep-btn dl-vi" onclick="muxPureJsAndDownload(this, '${rawUrl}', '${audUrl}', '${outName}')">⬇ Tải Video Tiếng Việt</button>`;
+    } else {
+      viBtnHtml = `<button type="button" class="ep-btn dl-vi" style="opacity:.5" onclick="toast('Tập này chưa có bản lồng tiếng Việt trên hệ thống')">🚫 Chưa có Tiếng Việt</button>`;
     }
 
     card.innerHTML = `
@@ -1269,11 +1321,11 @@ function renderResults(items){
         <span class="ep-name">Tập ${epNum}</span>
         ${badgeHtml}
       </div>
-      <div class="ep-meta">ID: ${item.video_id || "N/A"}</div>
+      <div class="ep-meta">ID Video: ${item.video_id || "N/A"}</div>
       <div class="ep-btns">
-        <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${rawUrl}')">▶ Xem</button>
-        ${viHtml}
-        <a class="ep-btn dl" href="${proxyOrig}" download="PineDrama_Tap_${epNum}_Goc.mp4">⬇ Tải Giọng Gốc</a>
+        <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${rawUrl}')">▶ Xem trước video</button>
+        ${viBtnHtml}
+        <a class="ep-btn dl" href="${proxyOrig}" download="PineDrama_Tap_${epNum}_Goc_${qual}.mp4">⬇ Tải Video Gốc</a>
       </div>
     `;
     grid.appendChild(card);
