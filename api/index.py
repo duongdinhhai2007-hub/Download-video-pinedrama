@@ -449,7 +449,6 @@ html,body{
 }
 a{color:inherit;text-decoration:none}
 
-/* TOP NAVBAR */
 .nav{
   position:sticky;top:0;z-index:40;
   background:rgba(11,11,18,.84);
@@ -478,7 +477,7 @@ a{color:inherit;text-decoration:none}
 .nav-links{display:flex;align-items:center;gap:8px}
 .nav-pill{
   padding:7px 14px;border-radius:10px;font-size:13px;font-weight:600;color:#cbd5e1;
-  transition:.2s;cursor:pointer;border:1px solid transparent;
+  transition:.2s;cursor:pointer;border:1px solid transparent;background:transparent;
 }
 .nav-pill:hover{color:#fff;background:rgba(255,255,255,.06)}
 .nav-pill.active{
@@ -493,10 +492,8 @@ a{color:inherit;text-decoration:none}
 }
 .btn-admin:hover{background:rgba(59,130,246,.24);color:#93c5fd}
 
-/* MAIN CONTAINER */
 .wrap{max-width:840px;margin:0 auto;padding:22px 16px 96px}
 
-/* MODE CARD */
 .panel{
   background:rgba(19,19,31,.86);
   border:1px solid var(--border);
@@ -526,7 +523,6 @@ a{color:inherit;text-decoration:none}
   box-shadow:0 0 0 1px rgba(168,85,247,.35);
 }
 
-/* HERO */
 .hero{text-align:center;margin:28px 0 22px}
 .hero h1{
   margin:0;font-size:30px;font-weight:800;letter-spacing:-.025em;
@@ -537,7 +533,6 @@ a{color:inherit;text-decoration:none}
   margin:10px auto 0;max-width:650px;color:var(--muted);font-size:13.5px;line-height:1.55;
 }
 
-/* INPUT BOX */
 .input-box{
   background:rgba(19,19,31,.92);
   border:1px solid var(--border);
@@ -577,7 +572,6 @@ a{color:inherit;text-decoration:none}
 .btn-submit:active{transform:scale(.99)}
 .btn-submit:disabled{opacity:.6;cursor:not-allowed}
 
-/* STATS */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
 .stat-card{
   background:rgba(19,19,31,.82);border:1px solid var(--border);
@@ -586,7 +580,6 @@ a{color:inherit;text-decoration:none}
 .stat-num{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.02em}
 .stat-lbl{font-size:12px;color:var(--muted);margin-top:3px}
 
-/* PC INFO SECTION */
 .pc-box{
   display:none;text-align:center;
   background:rgba(19,19,31,.9);border:1px solid var(--border);
@@ -604,7 +597,6 @@ a{color:inherit;text-decoration:none}
   margin-bottom:10px;
 }
 
-/* RESULTS AREA */
 .res-wrap{margin-top:20px;display:none}
 .res-head{
   display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
@@ -638,7 +630,6 @@ a{color:inherit;text-decoration:none}
 .ep-btn.play{background:#232336;color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
 .ep-btn.dl{background:linear-gradient(90deg,#ec4899,#8b5cf6);color:#fff}
 
-/* MODAL */
 .modal{
   position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
   display:none;align-items:center;justify-content:center;padding:16px;
@@ -652,7 +643,6 @@ a{color:inherit;text-decoration:none}
 .modal-close{background:#252538;border:0;color:#fff;border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:700}
 video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 
-/* ADMIN CARD IN MODAL */
 .admin-card{
   background:#0d0d16;border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;
 }
@@ -671,11 +661,9 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
   background:#1e1e2e;color:#fff;cursor:pointer;
 }
 
-/* FOOTER */
 .footer{text-align:center;margin-top:26px;font-size:11.5px;color:#64748b;line-height:1.7}
 .footer a{color:#60a5fa;font-weight:700}
 
-/* BOTTOM BAR */
 .bbar{
   position:fixed;bottom:0;left:0;right:0;z-index:40;
   background:rgba(13,13,22,.94);backdrop-filter:blur(12px);
@@ -685,6 +673,7 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 .bitem{
   display:flex;flex-direction:column;align-items:center;gap:3px;
   padding:6px 18px;border-radius:12px;font-size:11.5px;font-weight:700;color:#94a3b8;cursor:pointer;
+  background:none;border:0;
 }
 .bitem.active{background:rgba(139,92,246,.22);color:#fff;border:1px solid rgba(139,92,246,.38)}
 
@@ -828,15 +817,15 @@ video{width:100%;max-height:70vh;border-radius:12px;background:#000}
 </main>
 
 <div class="bbar">
-  <button type="button" class="bitem active" id="bWeb" onclick="switchTab('web')" style="background:none;border:0">
+  <button type="button" class="bitem active" id="bWeb" onclick="switchTab('web')">
     <span>🏠</span>
     <span>Tải video</span>
   </button>
-  <button type="button" class="bitem" id="bPc" onclick="switchTab('pc')" style="background:none;border:0">
+  <button type="button" class="bitem" id="bPc" onclick="switchTab('pc')">
     <span>💻</span>
     <span>Bản máy tính</span>
   </button>
-  <button type="button" class="bitem" onclick="openAdmin()" style="background:none;border:0">
+  <button type="button" class="bitem" onclick="openAdmin()">
     <span>📞</span>
     <span>Liên hệ Admin</span>
   </button>
@@ -1017,9 +1006,10 @@ function renderResults(items){
     }
 
     const best = item.variants[0];
-    const dlUrl = (best.urls && best.urls[0]) || best.api_url || "";
+    const rawUrl = (best.urls && best.urls[0]) || best.api_url || "";
     const qual = best.quality || "HD";
     const codec = (best.codec || "h264").toUpperCase();
+    const proxyUrl = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent("PineDrama_Tap_" + epNum + ".mp4")}`;
 
     card.innerHTML = `
       <div class="ep-top">
@@ -1028,8 +1018,8 @@ function renderResults(items){
       </div>
       <div class="ep-meta">ID: ${item.video_id || "N/A"}</div>
       <div class="ep-btns">
-        <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${dlUrl}')">▶ Xem</button>
-        <a class="ep-btn dl" href="${dlUrl}" target="_blank" rel="noopener" download="PineDrama_Tap_${epNum}.mp4">⬇ Tải MP4</a>
+        <button type="button" class="ep-btn play" onclick="openPlayer('Tập ${epNum} (${qual})', '${rawUrl}')">▶ Xem</button>
+        <a class="ep-btn dl" href="${proxyUrl}">⬇ Tải MP4</a>
       </div>
     `;
     grid.appendChild(card);
@@ -1129,6 +1119,39 @@ class handler(BaseHTTPRequestHandler):
 
         if path in ("/", "/index.html", "/api", "/api/index"):
             self._send_bytes(200, "text/html; charset=utf-8", INDEX_HTML.encode("utf-8"))
+            return
+        if path == "/api/download":
+            target_url = (qs.get("url") or [""])[0].strip()
+            fname = (qs.get("name") or ["PineDrama_Video.mp4"])[0].strip()
+            fname = re.sub(r"[^a-zA-Z0-9_.-]", "_", fname) or "PineDrama_Video.mp4"
+            if not target_url.startswith("http"):
+                self._send_json(400, {"ok": False, "error": "invalid url"})
+                return
+            try:
+                req = urllib.request.Request(
+                    target_url,
+                    headers={
+                        "User-Agent": USER_AGENT,
+                        "Referer": "https://www.tiktok.com/",
+                    },
+                )
+                with urllib.request.urlopen(req, timeout=25) as resp:
+                    ctype = resp.headers.get("Content-Type") or "video/mp4"
+                    clen = resp.headers.get("Content-Length")
+                    self.send_response(200)
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Content-Disposition", f'attachment; filename="{fname}"')
+                    if clen:
+                        self.send_header("Content-Length", clen)
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    while True:
+                        chunk = resp.read(65536)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+            except Exception as e:
+                self._send_json(502, {"ok": False, "error": str(e)})
             return
         if path == "/api/ping":
             self._send_json(200, {"ok": True, "t": int(time.time() * 1000), "engine": "vercel-python"})
